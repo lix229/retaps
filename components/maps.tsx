@@ -169,7 +169,7 @@ export default function MapComponent() {
 
     return (
         <APIProvider apiKey={process.env.MAPS_API_KEY!}>
-            <div className="w-full h-full rounded-lg overflow-hidden shadow-lg bg-red-200 relative">
+            <div className="w-full h-full rounded-lg overflow-hidden shadow-lg relative">
                 <Select
                     size="sm"
                     placeholder="Select Permit Types"

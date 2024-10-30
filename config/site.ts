@@ -13,6 +13,10 @@ export const siteConfig = {
       href: "https://taps.ufl.edu/parking-info/2024-preview/",
     },
     {
+      label: "Interactive Map",
+      href: "/maps",
+    },
+    {
       label: "About",
       href: "https://taps.ufl.edu/about/",
     }
