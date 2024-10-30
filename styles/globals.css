@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Billion Dreams';
+  src: url('/BillionDreams.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.font-billion-dreams {
+  font-family: 'Billion Dreams', sans-serif;
+}
+
