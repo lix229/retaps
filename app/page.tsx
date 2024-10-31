@@ -17,6 +17,14 @@ const DEBUGGING = false;
 export default function Home() {
     const {hoverProps: hoverPropsImage1, isHovered: isHoveredImage1} = useHover({});
     const {hoverProps: hoverPropsImage2, isHovered: isHoveredImage2} = useHover({});
+
+    const goToLink1 = () => {
+      window.location.href = "/maps";
+    }
+    const goToLink2 = () => {
+      window.location.href = "/login";
+    }
+
   return (
     <div className = "grid grid-rows-[1fr_3fr] grid-cols-2 h-[calc(100vh-90px)] w-full">
       {/* <div className={`flex flex-col h-[calc(100vh-90px)] items-center w-auto ${DEBUGGING ? "bg-green-200" : ""}`}>
@@ -40,8 +48,8 @@ export default function Home() {
       <div className = "border-8 border-black p-4 col-span-2 grid grid-cols-2 gap-10"> 
         
         <div {...hoverPropsImage1} className="flex h-full w-full">
-          <Link href = '/maps'>
-            <Card className="w-full h-full relative" isPressable>
+          {/* <Link href = '/maps'> */}
+            <Card className="w-full h-full relative" isPressable onPress={goToLink1}>
               <div className = "relative w-full h-full">
                 <Image
                   removeWrapper
@@ -80,12 +88,12 @@ export default function Home() {
 
               </div>
             </Card>
-          </Link>
+          {/* </Link> */}
         </div>
 
         <div {...hoverPropsImage2} className="flex h-full w-full">
-          <Link href = '/login'>
-            <Card className="w-full h-full relative rounded-lg" isPressable>
+          {/* <Link href = '/login'> */}
+            <Card className="w-full h-full relative rounded-lg" isPressable onPress={goToLink2}>
               <div className = "relative w-full h-full">
                 <Image
                   removeWrapper
@@ -124,10 +132,79 @@ export default function Home() {
 
               </div>
             </Card>
-          </Link>
+          {/* </Link> */}
         </div>
       </div>
   
     </div>
   );
 }
+
+// import {Input} from "@nextui-org/react"; 
+// import {useState} from 'react';
+
+// export default function Login() {
+//   const [email, setEmail] = useState("");
+//   const [password, setPassword] = useState("");
+
+//   const correctEmail = "gator@ufl.edu";
+//   const correctPassword = "password";
+
+//   const handleLogin = () => {
+//     if ((email === correctEmail) && (password === correctPassword)) {
+//       window.location.href = "http://portal.admin.ufl.edu";
+//     } else {
+//       alert('Invalid email or password!');
+//     }
+//   }
+
+//   return (
+//     <div className="flex h-[calc(100vh-90px)]">
+
+//       {/* Left Side */}
+//       <div className="w-1/2 flex flex-col justify-center p-4">
+//         <div className="mb-4 p-1" style={{fontFamily: 'Palatino, Palatino Linotype, serif'}}> 
+//           Login to access your account: 
+//         </div>
+//         <div className="flex flex-col space-y-4" style={{fontFamily: 'Palatino, Palatino Linotype, serif'}}>
+//           <Input 
+//             isRequired 
+//             type="email" 
+//             label="Email" 
+//             placeholder="Enter your email" 
+//             value = {email}
+//             onChange = {(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+//           />
+//           <Input 
+//             isRequired 
+//             type="password" 
+//             label="Password" 
+//             placeholder="Enter your password" 
+//             value = {password}
+//             onChange = {(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+//           />
+//         </div>
+//         <div className="mt-4" style={{fontFamily: 'Palatino, Palatino Linotype, serif'}}>
+//             <Button color="black" variant="ghost" onClick={handleLogin}>
+//               <p className="primary"> Login </p>
+//             </Button>
+//         </div>
+//       </div>
+
+//       {/* Right Side */}
+//       <div className="w-1/2 flex items-center justify-center p-4">
+//         <Card className="w-full h-full">
+//           <Image
+//               removeWrapper
+//               isBlurred
+//               style = {{opacity : "0.75"}}
+//               alt = "Parking Permits"
+//               className = "w-full h-full object-cover rounded-none"
+//               src = "/assets/gator_image.jpg"
+//             />
+//           {/* <CardBody style={{fontFamily: 'Palatino, Palatino Linotype, serif'}}> hi</CardBody> */}
+//         </Card>
+//       </div>
+//     </div>
+//   );
+// }
