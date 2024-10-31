@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { APIProvider, Map, MapCameraChangedEvent } from '@vis.gl/react-google-maps';
+import React, { useMemo, useState } from 'react';
+import { APIProvider, Map, MapCameraChangedEvent, Marker } from '@vis.gl/react-google-maps';
 import { useTheme } from 'next-themes';
 import { Select, SelectItem, Selection, Chip } from "@nextui-org/react";
+import { permitTypes } from '@/types/userData';
+import type { DepartData } from '@/types/locations';
 
+interface MapComponentProps {
+    departData?: DepartData;
+}
 
 const darkStyles = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -102,52 +107,31 @@ const lightStyles = [
         stylers: [{ visibility: "off" }],
     }
 ];
-interface PermitType {
-    id: string;
-    label: string;
-    color: "primary" | "secondary" | "success" | "warning" | "danger" | "default";
-    description?: string;
-}
 
-interface PermitType {
-    id: string;
-    label: string;
-    color: "primary" | "secondary" | "success" | "warning" | "danger" | "default";
-    description?: string;
-}
-
-const permitTypes: PermitType[] = [
-    {
-        id: "student",
-        label: "Student",
-        color: "success",
-        description: "For daily commuters"
-    },
-    {
-        id: "resident",
-        label: "Resident",
-        color: "danger",
-        description: "For campus residents"
-    },
-    {
-        id: "staff",
-        label: "Staff",
-        color: "warning",
-        description: "For university staff"
-    },
-    {
-        id: "visitor",
-        label: "Visitor",
-        color: "secondary",
-        description: "For campus visitors"
-    },
-];
-
-export default function MapComponent() {
+export default function MapComponent({ departData }: MapComponentProps) {
     const { theme } = useTheme();
-    const [selectedPermits, setSelectedPermits] = React.useState<Selection>(new Set([]));
+    const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
 
+    // Compute the initial center based on departData or default values
+    const initialCenter = useMemo(() => {
+        return departData?.location
+            ? { lat: departData.location.LAT, lng: departData.location.LON }
+            : { lat: 29.643946, lng: -82.355659 };
+    }, [departData]);
 
+    // Update map key when departData changes to force re-render with new center
+    const mapKey = useMemo(() => {
+        return departData?.location ? `map-${departData.location.LAT}-${departData.location.LON}` : 'default-map';
+    }, [departData]);
+
+    const selectWidth = useMemo(() => {
+        const selectedSize = selectedPermits instanceof Set ? selectedPermits.size : 0;
+        const baseWidth = 200;
+        const additionalWidth = 27;
+        const calculatedWidth = baseWidth + (selectedSize * additionalWidth);
+        const maxWidth = 900;
+        return Math.min(calculatedWidth, maxWidth);
+    }, [selectedPermits]);
 
     const renderSelectedItems = (items: any) => {
         return (
@@ -174,15 +158,19 @@ export default function MapComponent() {
                     size="sm"
                     placeholder="Select Permit Types"
                     selectionMode="multiple"
-                    label="Permit Types"
+                    label={<span className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Permit Types</span>}
                     selectedKeys={selectedPermits}
                     onSelectionChange={setSelectedPermits}
                     renderValue={renderSelectedItems}
-                    style={{ fontFamily: 'var(--nextui-font-sans)' }}
-                    className="absolute top-5 right-5 z-10 bg-white h-auto w-auto min-w-[200px] max-w-[500px] dark:bg-gray-800 shadow-md rounded-md"
+                    style={{
+                        fontFamily: 'var(--nextui-font-sans)',
+                        width: `${selectWidth}px`,
+                        transition: 'width 0.2s ease-in-out',
+                    }}
+                    className="absolute top-5 w-[${selectWidth}px] right-5 z-10 bg-white h-auto dark:bg-gray-800 shadow-md rounded-md"
                     classNames={{
                         trigger: "min-h-[80px]",
-                        listbox: "max-h-[300px]",
+                        listbox: "max-h-[300px] ",
                         value: "py-1",
                         popoverContent: "p-0",
                     }}
@@ -210,16 +198,23 @@ export default function MapComponent() {
                         </SelectItem>
                     ))}
                 </Select>
-
                 <Map
-                    defaultZoom={13}
+                    key={mapKey}
+                    defaultZoom={15}
                     disableDefaultUI={true}
-                    defaultCenter={{ lat: 29.643946, lng: -82.355659 }}
+                    defaultCenter={initialCenter}
                     styles={theme === 'dark' ? darkStyles : lightStyles}
                     onCameraChanged={(ev: MapCameraChangedEvent) =>
                         console.log('camera changed:', ev.detail.center, 'zoom:', ev.detail.zoom)
                     }
-                />
+                >
+                    {departData?.location && (
+                        <Marker
+                            position={{ lat: departData.location.LAT, lng: departData.location.LON }}
+                            title={departData.location.NAME}
+                        />
+                    )}
+                </Map>
             </div>
         </APIProvider>
     );

@@ -1,18 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DatePicker } from "@nextui-org/date-picker";
 import AutocompleteList from "@/components/AutocompleteList";
 import { TimeInput } from "@nextui-org/date-input";
-import { DateValue, getLocalTimeZone, today, now } from "@internationalized/date";
-import type { TimeValue } from "@react-types/datepicker";
+import { getLocalTimeZone, today, now } from "@internationalized/date";
+import { DepartData } from "@/types/departData";
 
-interface DepartData {
-    location: string | null;
-    date: DateValue | null;
-    time: TimeValue | null;
+interface DepartDateSelectorProps {
+    onDepartDataChange: (data: DepartData) => void;
 }
 
-export default function DepartDateSelector() {
+export default function DepartDateSelector({ onDepartDataChange }: DepartDateSelectorProps) {
     // Set default values for today's date and current time
     const defaultDate = today(getLocalTimeZone());
     const defaultTime = now(getLocalTimeZone()).add({ minutes: 10 });
@@ -23,19 +21,12 @@ export default function DepartDateSelector() {
         time: defaultTime,
     });
 
-    const handleLocationSelect = (location: string) => {
-        setDepartData((prevData) => ({ ...prevData, location }));
-        console.log("Updated depart data:", { ...departData, location });
-    };
+    useEffect(() => {
+        onDepartDataChange(departData);
+    }, [departData, onDepartDataChange]);
 
-    const handleDateChange = (value: DateValue) => {
-        setDepartData((prevData) => ({ ...prevData, date: value }));
-        console.log("Updated depart data:", { ...departData, date: value });
-    };
-
-    const handleTimeChange = (value: TimeValue) => {
-        setDepartData((prevData) => ({ ...prevData, time: value }));
-        console.log("Updated depart data:", { ...departData, time: value });
+    const handleDepartDataChange = (key: keyof DepartData, value: any) => {
+        setDepartData((prevData) => ({ ...prevData, [key]: value }));
     };
 
     // Determine minimum time based on whether the selected date is today
@@ -44,22 +35,22 @@ export default function DepartDateSelector() {
 
     return (
         <div className="space-y-2">
-            <AutocompleteList onSelect={handleLocationSelect} />
+            <AutocompleteList onSelect={(location) => handleDepartDataChange("location", location)} />
             <div className="flex-row flex space-x-1">
                 <DatePicker
                     label="Pick a date"
-                    className="w-[170px] rounded-[12px] shadow-medium"
-                    onChange={handleDateChange}
+                    className="w-[170px] rounded-[12px]"
+                    onChange={(value) => handleDepartDataChange("date", value)}
                     minValue={defaultDate}
                     defaultValue={defaultDate}
-                    value={departData.date} // Set initial value for DatePicker
+                    value={departData.date}
                 />
                 <TimeInput
                     label="Pick a time"
-                    className="w-[130px] rounded-[12px] shadow-medium"
-                    onChange={handleTimeChange}
+                    className="w-[130px] rounded-[12px]"
+                    onChange={(value) => handleDepartDataChange("time", value)}
                     minValue={minimumTime}
-                    value={departData.time} // Set initial value for TimeInput
+                    value={departData.time}
                 />
             </div>
         </div>
