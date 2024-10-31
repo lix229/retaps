@@ -3,7 +3,7 @@ import DepartDateSelector from "@/components/date-selector";
 import { Button } from "@nextui-org/button";
 import Upcoming from "@/components/Upcoming";
 import MapComponent from "@/components/maps";
-import { use, useEffect, useState } from "react";
+import { useState } from "react";
 
 const DEBUGGING = false;
 

@@ -46,17 +46,17 @@ export const Navbar = () => {
   );
 
   return (
-    <NextUINavbar maxWidth="xl" position="sticky">
+    <NextUINavbar maxWidth="xl" position="sticky" >
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand as="li" className="gap-3 max-w-fit">
+          <Logo />
           <NextLink className="flex justify-start items-center gap-1" href="/">
-            <Logo />
-            <p className="text-inherit text-[40px] font-billion-dreams">
+            <p className="text-inherit text-[40px] font-billion-dreams mt-1">
               ReTaps
             </p>
           </NextLink>
         </NavbarBrand>
-        <ul className="hidden lg:flex gap-4 justify-start ml-2">
+        <ul className="hidden lg:flex gap-4 justify-start ml-2 mt-2">
           {siteConfig.navItems.map((item) => (
             <NavbarItem key={item.href}>
               <NextLink
