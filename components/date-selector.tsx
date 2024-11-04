@@ -4,7 +4,7 @@ import { DatePicker } from "@nextui-org/date-picker";
 import AutocompleteList from "@/components/AutocompleteList";
 import { TimeInput } from "@nextui-org/date-input";
 import { getLocalTimeZone, today, now } from "@internationalized/date";
-import { DepartData } from "@/types/departData";
+import { DepartData } from "@/types/locations";
 
 interface DepartDateSelectorProps {
     onDepartDataChange: (data: DepartData) => void;

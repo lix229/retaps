@@ -7,12 +7,17 @@ import { useState } from "react";
 
 const DEBUGGING = false;
 
-
 export default function MapsPage() {
   const [departData, setDepartData] = useState(undefined);
+  const [parkingData, setParkingData] = useState(undefined);
 
   const handleDepartDataChange = (data: any) => {
     setDepartData(data);
+  };
+
+  const handleFindParkingClick = () => {
+    setParkingData(departData);
+    console.log("Sending departData to MapComponent:", departData);
   };
 
   return (
@@ -25,6 +30,7 @@ export default function MapsPage() {
               radius="full"
               className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg w-[120px] h-[120px] rounded-lg flex flex-col items-center justify-center text-center text-[23px] font-extrabold"
               style={{ fontFamily: "'Newsreader', serif" }}
+              onClick={handleFindParkingClick}
             >
               Find&nbsp;Me
               <br />
@@ -36,7 +42,7 @@ export default function MapsPage() {
 
         <div className={`flex flex-col w-full p-2 ${DEBUGGING ? "bg-red-200" : ""} h-full`}>
           <div className={`${DEBUGGING ? "bg-gray-200" : ""} flex-1 w-full`}>
-            <MapComponent departData={departData} />
+            <MapComponent departData={parkingData} />
           </div>
         </div>
       </div>
