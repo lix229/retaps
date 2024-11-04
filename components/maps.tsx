@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap } from '@react-google-maps/api';
+import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useTheme } from 'next-themes';
 import { Select, SelectItem, Selection, Chip } from "@nextui-org/react";
 import { permitTypes } from '@/types/userData';
@@ -88,6 +88,48 @@ export default function MapComponent({ departData }: MapComponentProps) {
 
 
     if (!isLoaded) return <p>Loading map...</p>;
+
+    const route = topParkingSpots[0]?.directionsResult.routes[0];
+    const path = route?.overview_path;
+
+    // Calculate midpoint index
+    const midpointIndex = path ? Math.floor(path.length / 2) : 0;
+
+    // Get the midpoint coordinates
+    const midpoint = path
+        ? {
+            lat: path[midpointIndex].lat(),
+            lng: path[midpointIndex].lng(),
+        }
+        : null;
+
+    const duration = route?.legs[0].duration.text;
+
+    function RouteDurationOverlay({ position, duration, theme }) {
+        return (
+            <OverlayView
+                position={position}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+            >
+                <div
+                    className={`route-duration-overlay ${theme === 'dark' ? 'dark' : 'light'} w-[70px]`}
+                    style={{
+                        backgroundColor: theme === 'dark' ? '#333' : '#fff',
+                        color: theme === 'dark' ? '#fff' : '#000',
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        border: `2px solid ${theme === 'dark' ? '#fff' : '#000'}`,
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 'bold',
+                        transform: 'translate(-50%, -50%)',
+                    }}
+                >
+                    {duration}
+                </div>
+            </OverlayView>
+        );
+    }
 
     const renderSelectedItems = (items: any) => {
         return (
@@ -234,7 +276,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
                                 color: theme === 'dark' ? '#fff' : '#000',
                                 fontSize: '14px',
                                 fontWeight: 'bold',
-                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-6',
+                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-6 z-10',
                             }}
                             icon={{
                                 url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
@@ -245,6 +287,13 @@ export default function MapComponent({ departData }: MapComponentProps) {
                             directions={topParkingSpots[0].directionsResult}
                             options={{ suppressInfoWindows: true, suppressMarkers: true }}
                         />
+                        {midpoint && duration && (
+                            <RouteDurationOverlay
+                                position={midpoint}
+                                duration={duration}
+                                theme={theme}
+                            />
+                        )}
                     </React.Fragment>
                 )}
             </GoogleMap>

@@ -1,4 +1,5 @@
 import { DepartData, ParkingSpotType } from "@/types/locations";
+import { OverlayView } from '@react-google-maps/api';
 
 export function compare_routes(a: any, b: any, preference: string) {
     if (preference === 'faster') {
