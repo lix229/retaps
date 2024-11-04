@@ -5,21 +5,23 @@ import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap } from
 import { useTheme } from 'next-themes';
 import { Select, SelectItem, Selection, Chip } from "@nextui-org/react";
 import { permitTypes } from '@/types/userData';
-import type { DepartData } from '@/types/locations';
+import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/types/locations';
 import { darkStyles, lightStyles } from '@/data/maps';
 import { parking_data } from '@/data/parking_data';
+import { compare_routes, filter_parking_data } from '@/utils/map_utils';
 
 interface MapComponentProps {
     departData?: DepartData;
 }
 
-
-
 export default function MapComponent({ departData }: MapComponentProps) {
     const { theme } = useTheme();
     const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
     const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-    const [infoWindowOpen, setInfoWindowOpen] = useState(false);
+    const [topParkingSpots, setTopParkingSpots] = useState<
+        Array<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult }>
+    >([]);
+    const [selectedPreference, setSelectedPreference] = useState<string>('faster');
 
     const { isLoaded } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY!,
@@ -40,34 +42,50 @@ export default function MapComponent({ departData }: MapComponentProps) {
         return Math.min(calculatedWidth, maxWidth);
     }, [selectedPermits]);
 
+
     useEffect(() => {
         if (departData?.location) {
+            var filteredParkingData = filter_parking_data(parking_data, departData, Array.from(selectedPermits).map(String));
             const directionsService = new google.maps.DirectionsService();
-            var best = null;
-            for (var parking_spot in parking_data) {
-                var origin = { lat: parking_data[parking_spot].LATITUDE, lng: parking_data[parking_spot].LONGITUDE };
-                directionsService.route(
-                    {
-                        // origin: { lat: 29.643946, lng: -82.355659 },
-                        origin: origin,
-                        destination: { lat: departData.location.LAT, lng: departData.location.LON },
-                        travelMode: google.maps.TravelMode.WALKING,
-                    },
-                    (result, status) => {
-                        if (status === google.maps.DirectionsStatus.OK) {
-                            if (!best || result.routes[0].legs[0].duration.value < best.routes[0].legs[0].duration.value) {
-                                best = result;
-                                setDirections(result);
+            const promises = Object.values(filteredParkingData).map((parkingSpot) => {
+                const origin = { lat: parkingSpot.LATITUDE, lng: parkingSpot.LONGITUDE };
+                return new Promise<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult | null }>((resolve) => {
+                    directionsService.route(
+                        {
+                            origin,
+                            destination: { lat: departData.location.LAT, lng: departData.location.LON },
+                            travelMode: google.maps.TravelMode.TRANSIT,
+                        },
+                        (result, status) => {
+                            if (status === google.maps.DirectionsStatus.OK && result) {
+                                resolve({ parkingSpot, directionsResult: result });
+                            } else {
+                                resolve({ parkingSpot, directionsResult: null });
                             }
-                            console.log("Directions:", result);
-                        } else {
-                            console.error(`Error fetching directions: ${status}`);
                         }
-                    }
+                    );
+                });
+            });
+
+            Promise.all(promises).then((results) => {
+                const validResults = results.filter(
+                    (item): item is ValidParkingDirections => item.directionsResult !== null
                 );
-            }
+                console.log("ParkingSpots", validResults);
+
+                const top10Results = validResults
+                    .sort(
+                        (a, b) => compare_routes(a, b, selectedPreference)
+                    )
+                    .slice(0, 10);
+
+                setTopParkingSpots(top10Results);
+
+            });
         }
-    }, [departData]);
+    }, [departData, selectedPermits, selectedPreference]);
+
+
 
     if (!isLoaded) return <p>Loading map...</p>;
 
@@ -97,7 +115,6 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 selectionMode="multiple"
                 variant='faded'
                 aria-label='Permit Types'
-                // label="Permit Types"
                 selectedKeys={selectedPermits}
                 onSelectionChange={setSelectedPermits}
                 renderValue={renderSelectedItems}
@@ -106,7 +123,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     width: `${selectWidth}px`,
                     transition: 'width 0.2s ease-in-out',
                 }}
-                className="absolute top-5 w-[${selectWidth}px] right-5 z-10 bg-white h-auto dark:bg-gray-800 shadow-md rounded-md"
+                className="absolute top-5 w-[${selectWidth}px] right-5 z-10 h-auto shadow-md rounded-md"
                 classNames={{
                     trigger: "min-h-[50px]",
                     listbox: "max-h-[300px]",
@@ -138,20 +155,27 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 ))}
             </Select>
             <Select
-                size="sm"
                 placeholder="Preferences"
+                label="I prefer to"
                 variant='faded'
                 aria-label='Preferences'
+                defaultSelectedKeys={['faster']}
+                selectedKeys={new Set([selectedPreference])}
+                onSelectionChange={(keys) => {
+                    const selectedKey = Array.from(keys).pop();
+                    if (typeof selectedKey === 'string') {
+                        setSelectedPreference(selectedKey);
+                    }
+                }}
                 style={{
                     fontFamily: 'var(--nextui-font-sans)',
                     width: `200px`,
                 }}
-                className="absolute top-5 w-[100px] left-5 z-10 bg-white h-auto dark:bg-gray-800 shadow-md rounded-md"
+                className="absolute top-5 w-[100px] left-5 z-10 h-auto"
                 classNames={{
-                    trigger: "min-h-[50px]",
+                    trigger: "min-h-[60px]",
                     listbox: "max-h-[300px]",
                     value: "py-0",
-                    popoverContent: "p-0",
                 }}
                 listboxProps={{
                     itemClasses: {
@@ -170,8 +194,8 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 }}
             >
                 <SelectItem key={'walk_less'}>Walk Less</SelectItem>
-                <SelectItem key={'faster'}>Faster</SelectItem>
-                <SelectItem key={'no_bus'}>No Bus</SelectItem>
+                <SelectItem key={'faster'}>Arrive Sooner</SelectItem>
+                <SelectItem key={'no_bus'}>Not Taking Bus</SelectItem>
             </Select>
             <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -185,28 +209,45 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 {departData?.location && (
                     <Marker
                         position={{ lat: departData.location.LAT, lng: departData.location.LON }}
-                        onClick={() => setInfoWindowOpen(true)}
+                        label={{
+                            text: departData.location.NAME,
+                            color: theme === 'dark' ? '#fff' : '#000',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-5',
+                        }}
+                        icon={{
+                            url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
+                        }}
                     >
-                        {infoWindowOpen && (
-                            <InfoWindow
-                                position={{ lat: departData.location.LAT, lng: departData.location.LON }}
-                                onCloseClick={() => setInfoWindowOpen(false)}
-                            >
-                                <div className="m-0 leading-tight text-black h-auto">
-                                    <h4 className="text-lg font-bold -mt-1 z-10">{departData.location.NAME}</h4>
-                                    <p className="text-sm mt-0">{departData.location.OFFICIAL_ROOM_NAME}</p>
-                                </div>
-                            </InfoWindow>
-
-                        )}
                     </Marker>
                 )}
-                {directions && (
-                    <DirectionsRenderer
-                        directions={directions}
-                        options={{ suppressInfoWindows: true, suppressMarkers: true }}
-                    />
+                {topParkingSpots[0] && (
+                    <React.Fragment>
+                        <Marker
+                            position={{
+                                lat: topParkingSpots[0].directionsResult.routes[0].legs[0].start_location.lat(),
+                                lng: topParkingSpots[0].directionsResult.routes[0].legs[0].start_location.lng(),
+                            }}
+                            label={{
+                                text: topParkingSpots[0].parkingSpot.Name,
+                                color: theme === 'dark' ? '#fff' : '#000',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-6',
+                            }}
+                            icon={{
+                                url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
+                            }}
+
+                        />
+                        <DirectionsRenderer
+                            directions={topParkingSpots[0].directionsResult}
+                            options={{ suppressInfoWindows: true, suppressMarkers: true }}
+                        />
+                    </React.Fragment>
                 )}
             </GoogleMap>
         </div>
     );
+}

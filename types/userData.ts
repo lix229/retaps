@@ -7,25 +7,25 @@ export interface PermitType {
 
 export const permitTypes: PermitType[] = [
     {
-        id: "student",
+        id: "green",
         label: "Student",
         color: "success",
         description: "For daily commuters"
     },
     {
-        id: "resident",
+        id: "red",
         label: "Resident",
         color: "danger",
         description: "For campus residents"
     },
     {
-        id: "staff",
+        id: "orange",
         label: "Staff",
         color: "warning",
         description: "For university staff"
     },
     {
-        id: "visitor",
+        id: "purple",
         label: "Visitor",
         color: "secondary",
         description: "For campus visitors"

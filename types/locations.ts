@@ -19,3 +19,19 @@ export interface Location {
         SITECODE: string
         BLDG_NAME: string
 }
+
+
+export interface ParkingSpotType {
+    Name: string;
+    LATITUDE: number;
+    LONGITUDE: number;
+    Permit: string;
+    'Permit holders allowed': string;
+    Start: string;
+    End: string;
+}
+
+export interface ValidParkingDirections {
+    parkingSpot: ParkingSpotType;
+    directionsResult: google.maps.DirectionsResult
+}
