@@ -1,5 +1,4 @@
 import { DepartData, ParkingSpotType } from "@/types/locations";
-import { OverlayView } from '@react-google-maps/api';
 
 export function compare_routes(a: any, b: any, preference: string) {
     if (preference === 'faster') {
@@ -46,20 +45,51 @@ export function compare_routes(a: any, b: any, preference: string) {
       );
     }
   }
-  
+
+const isTimeInRange = (hour: number, minute: number, startTime: string, endTime: string) => {
+    if (!startTime || !endTime || startTime ==="all day" || endTime === "all day") {
+        return true;
+    }
+    const parseTime = (timeString: string) => {
+        const [time, period] = timeString.split(/(AM|PM|am|pm)/i);
+        let [hours, minutes] = time.split(':').map(Number);
+        
+        if (period.toLowerCase() === 'pm' && hours !== 12) {
+            hours += 12;
+        }
+        if (period.toLowerCase() === 'am' && hours === 12) {
+            hours = 0;
+        }
+        
+        return new Date(0, 0, 0, hours, minutes);
+    };
+    
+    const currentTime = new Date(0, 0, 0, hour, minute);
+    const start = parseTime(startTime);
+    const end = parseTime(endTime);
+
+    if (start < end) {
+        return currentTime >= start && currentTime <= end;
+    } else {
+        return currentTime >= start || currentTime <= end;
+    }
+};
 
 export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[]) {
+  
     if (permit) {
         parkingData = parkingData.filter((parkingSpot: any) => {
-            console.log(parkingSpot['Permit holders allowed']);
             if (parkingSpot['Permit holders allowed']) {
-                return permit.some((p) => parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()));
+                return permit.some((p) => parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()) || isTimeInRange(departData.time!.hour, departData.time!.minute, parkingSpot['Start time'], parkingSpot['End time']));
             }
             else {
              return false;
             }
         });
     }
+
+ 
+
     
     return parkingData;
 }
