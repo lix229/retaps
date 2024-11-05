@@ -47,7 +47,8 @@ export function compare_routes(a: any, b: any, preference: string) {
   }
 
 const isTimeInRange = (hour: number, minute: number, startTime: string, endTime: string) => {
-    if (!startTime || !endTime || startTime ==="all day" || endTime === "all day") {
+    console.log(startTime, endTime)
+    if (startTime ==="all day" || endTime === "all day" || startTime === "-" || endTime === "-") {
         return true;
     }
     const parseTime = (timeString: string) => {
@@ -76,11 +77,13 @@ const isTimeInRange = (hour: number, minute: number, startTime: string, endTime:
 };
 
 export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[]) {
-  
     if (permit) {
         parkingData = parkingData.filter((parkingSpot: any) => {
-            if (parkingSpot['Permit holders allowed']) {
-                return permit.some((p) => parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()) || isTimeInRange(departData.time!.hour, departData.time!.minute, parkingSpot['Start time'], parkingSpot['End time']));
+            if (!isTimeInRange(departData.time.hour, departData.time.minute, parkingSpot['Start'], parkingSpot['End'])) {
+                return true;
+            }
+            else if (parkingSpot['Permit holders allowed']) {
+                return permit.some((p) => parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()));
             }
             else {
              return false;
