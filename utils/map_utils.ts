@@ -79,7 +79,7 @@ const isTimeInRange = (hour: number, minute: number, startTime: string, endTime:
 export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[]) {
     if (permit) {
         parkingData = parkingData.filter((parkingSpot: any) => {
-            if (!isTimeInRange(departData.time.hour, departData.time.minute, parkingSpot['Start'], parkingSpot['End'])) {
+            if (!isTimeInRange(departData.time!.hour, departData.time!.minute, parkingSpot['Start'], parkingSpot['End'])) {
                 return true;
             }
             else if (parkingSpot['Permit holders allowed']) {

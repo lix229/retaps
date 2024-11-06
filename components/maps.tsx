@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useTheme } from 'next-themes';
-import { Select, SelectItem, Selection, Chip } from "@nextui-org/react";
+import { Select, SelectItem, Selection, Chip, Button } from "@nextui-org/react";
 import { permitTypes } from '@/types/userData';
 import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/types/locations';
 import { darkStyles, lightStyles } from '@/data/maps';
@@ -22,6 +22,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
         Array<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult }>
     >([]);
     const [selectedPreference, setSelectedPreference] = useState<string>('faster');
+    const [currentRoute, setCurrentRoute] = useState<number>(0);
 
     const { isLoaded } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY!,
@@ -42,10 +43,10 @@ export default function MapComponent({ departData }: MapComponentProps) {
         return Math.min(calculatedWidth, maxWidth);
     }, [selectedPermits]);
 
-
     useEffect(() => {
         if (departData?.location) {
-            var filteredParkingData = filter_parking_data(parking_data, departData, Array.from(selectedPermits).map(String));
+            const filteredParkingData = filter_parking_data(parking_data as ParkingSpotType[], departData, Array.from(selectedPermits).map(String));
+            const TRANSIT_MODE = selectedPreference === 'no_bus' ? google.maps.TravelMode.WALKING : google.maps.TravelMode.TRANSIT;
             const directionsService = new google.maps.DirectionsService();
             const promises = Object.values(filteredParkingData).map((parkingSpot) => {
                 const origin = { lat: parkingSpot.LATITUDE, lng: parkingSpot.LONGITUDE };
@@ -53,8 +54,8 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     directionsService.route(
                         {
                             origin,
-                            destination: { lat: departData.location.LAT, lng: departData.location.LON },
-                            travelMode: google.maps.TravelMode.TRANSIT,
+                            destination: { lat: departData.location!.LAT, lng: departData.location!.LON },
+                            travelMode: TRANSIT_MODE,
                         },
                         (result, status) => {
                             if (status === google.maps.DirectionsStatus.OK && result) {
@@ -71,7 +72,6 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 const validResults = results.filter(
                     (item): item is ValidParkingDirections => item.directionsResult !== null
                 );
-                console.log("ParkingSpots", validResults);
 
                 const top10Results = validResults
                     .sort(
@@ -80,16 +80,22 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     .slice(0, 10);
 
                 setTopParkingSpots(top10Results);
-
+                setCurrentRoute(0); // Reset to the first route on new data
             });
         }
     }, [departData, selectedPermits, selectedPreference]);
 
+    const handlePreviousRoute = () => {
+        setCurrentRoute((prev) => (prev > 0 ? prev - 1 : prev));
+    };
 
+    const handleNextRoute = () => {
+        setCurrentRoute((prev) => (prev < topParkingSpots.length - 1 ? prev + 1 : prev));
+    };
 
     if (!isLoaded) return <p>Loading map...</p>;
 
-    const route = topParkingSpots[0]?.directionsResult.routes[0];
+    const route = topParkingSpots[currentRoute]?.directionsResult.routes[0];
     const path = route?.overview_path;
 
     // Calculate midpoint index
@@ -103,7 +109,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
         }
         : null;
 
-    const duration = route?.legs[0].duration.text;
+    const duration = route?.legs[0].duration!.text;
 
     function RouteDurationOverlay({ position, duration, theme }) {
         return (
@@ -211,9 +217,9 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 }}
                 style={{
                     fontFamily: 'var(--nextui-font-sans)',
-                    width: `200px`,
+                    width: `270px`,
                 }}
-                className="absolute top-5 w-[100px] left-5 z-10 h-auto"
+                className="absolute top-5 w-[150px] left-5 z-10 h-auto"
                 classNames={{
                     trigger: "min-h-[60px]",
                     listbox: "max-h-[300px]",
@@ -239,6 +245,20 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 <SelectItem key={'faster'}>Arrive Sooner</SelectItem>
                 <SelectItem key={'no_bus'}>Not Taking Bus</SelectItem>
             </Select>
+            <Button
+                className="absolute top-[90px] w-[130px] left-5 z-10 h-[40px]"
+                color='primary'
+                variant='shadow'
+                onClick={handlePreviousRoute}
+                isDisabled={currentRoute === 0}
+            >Previous Route</Button>
+            <Button
+                className="absolute top-[90px] w-[130px] left-[160px] z-10 h-[40px]"
+                color='primary'
+                variant='shadow'
+                onClick={handleNextRoute}
+                isDisabled={currentRoute === topParkingSpots.length - 1}
+            >Next Route</Button>
             <GoogleMap
                 mapContainerStyle={{ width: '100%', height: '100%' }}
                 center={initialCenter}
@@ -249,30 +269,53 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 }}
             >
                 {departData?.location && (
-                    <Marker
-                        position={{ lat: departData.location.LAT, lng: departData.location.LON }}
-                        label={{
-                            text: departData.location.NAME,
-                            color: theme === 'dark' ? '#fff' : '#000',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-5',
-                        }}
-                        icon={{
-                            url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
-                        }}
-                    >
-                    </Marker>
-                )}
-                {topParkingSpots[0] && (
-                    <React.Fragment>
-                        <Marker
+                    <>
+                        {/* <Marker
+                            position={{ lat: departData.location.LAT, lng: departData.location.LON }}
+                            label={{
+                                text: departData.location.NAME,
+                                color: theme === 'dark' ? '#fff' : '#000',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-5',
+                            }}
+                            icon={{
+                                url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
+                            }}
+                        >
+                        </Marker> */}
+                        <OverlayView
                             position={{
-                                lat: topParkingSpots[0].directionsResult.routes[0].legs[0].start_location.lat(),
-                                lng: topParkingSpots[0].directionsResult.routes[0].legs[0].start_location.lng(),
+                                lat: departData.location.LAT, lng: departData.location.LON
+                            }}
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                        >
+                            <Chip
+                                color="success"
+                                variant="shadow"
+                                size="lg"
+                                style={{
+                                    padding: '5px',
+                                    fontSize: '14px',
+                                    color: theme === 'dark' ? '#fff' : '#000',
+                                    fontWeight: 'bold',
+                                    transform: 'translate(-50%, -50%)',
+                                }}
+                            >
+                                {departData.location.NAME}
+                            </Chip>
+                        </OverlayView>
+                    </>
+                )}
+                {topParkingSpots[currentRoute] && (
+                    <React.Fragment>
+                        {/* <Marker
+                            position={{
+                                lat: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lat(),
+                                lng: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lng(),
                             }}
                             label={{
-                                text: topParkingSpots[0].parkingSpot.Name,
+                                text: topParkingSpots[currentRoute].parkingSpot.Name,
                                 color: theme === 'dark' ? '#fff' : '#000',
                                 fontSize: '14px',
                                 fontWeight: 'bold',
@@ -281,10 +324,30 @@ export default function MapComponent({ departData }: MapComponentProps) {
                             icon={{
                                 url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
                             }}
-
-                        />
+                        /> */}
+                        <OverlayView
+                            position={{
+                                lat: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lat(),
+                                lng: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lng(),
+                            }}
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                        >
+                            <Chip
+                                color="warning"
+                                variant="shadow"
+                                size="lg"
+                                style={{
+                                    padding: '5px',
+                                    fontSize: '14px',
+                                    fontWeight: 'bold',
+                                    transform: 'translate(-50%, -50%)',
+                                }}
+                            >
+                                {topParkingSpots[currentRoute].parkingSpot.Name}
+                            </Chip>
+                        </OverlayView>
                         <DirectionsRenderer
-                            directions={topParkingSpots[0].directionsResult}
+                            directions={topParkingSpots[currentRoute].directionsResult}
                             options={{ suppressInfoWindows: true, suppressMarkers: true }}
                         />
                         {midpoint && duration && (
