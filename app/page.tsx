@@ -1,11 +1,5 @@
 "use client";
 
-import DepartDateSelector from "@/components/date-selector";
-import { Button } from "@nextui-org/button";
-import Upcoming from "@/components/Upcoming";
-import Feed from "@/components/Feed";
-import MapComponent from "@/components/maps";
-
 
 import { Card, CardHeader, CardBody, Image } from '@nextui-org/react';
 import React from "react";
@@ -15,6 +9,8 @@ import { useTheme } from 'next-themes';
 const DEBUGGING = false;
 
 export default function Home() {
+  const { theme } = useTheme();
+
   const { hoverProps: hoverPropsImage1, isHovered: isHoveredImage1 } = useHover({});
   const { hoverProps: hoverPropsImage2, isHovered: isHoveredImage2 } = useHover({});
 
@@ -22,21 +18,11 @@ export default function Home() {
     window.location.href = "/maps";
   }
   const goToLink2 = () => {
-    window.location.href = "/login";
+    window.location.href = "https://portal.admin.ufl.edu/";
   }
-
-  const { theme } = useTheme();
 
   return (
     <div className="grid grid-rows-[1fr_3fr] grid-cols-2 h-[calc(100vh-90px)] w-full">
-      {/* <div className={`flex flex-col h-[calc(100vh-90px)] items-center w-auto ${DEBUGGING ? "bg-green-200" : ""}`}>
-        <p className="text-inherit text-[250px] font-billion-dreams">
-          ReTaps
-        </p>
-        <p style={{ fontFamily: 'Palatino, Palatino Linotype, serif' }}>
-          Redefining the way transportation works on campus
-        </p>
-      </div> */}
 
       <div className={`flex flex-col col-span-2 h-full w-full items-center w-auto ${DEBUGGING ? "bg-green-200" : ""}`}>
         <p className="text-inherit text-[150px] text-center font-billion-dreams">
@@ -69,9 +55,7 @@ export default function Home() {
                   marginBottom: "10px",
                   lineHeight: "1.2",
                   fontFamily: 'Palatino, Palatino Linotype, serif',
-                  color: (isHoveredImage1 && theme === "light") ? "white" :
-                    (!isHoveredImage1 && theme === "light") ? "black" :
-                      (isHoveredImage1 && theme === "dark") ? "white" : "white"
+                  color: (theme === "light" && isHoveredImage1) ? "white" : undefined
                 }}
                   className="uppercase text-center"
                 > Route Planning
@@ -82,9 +66,7 @@ export default function Home() {
                   marginTop: "10px",
                   lineHeight: "1.2",
                   fontFamily: 'Palatino, Palatino Linotype, serif',
-                  color: (isHoveredImage1 && theme === "light") ? "white" :
-                    (!isHoveredImage1 && theme === "light") ? "black" :
-                      (isHoveredImage1 && theme === "dark") ? "white" : "white"
+                  color: (theme === "light" && isHoveredImage1) ? "white" : undefined
                 }}
                   className="text-center"
                 > Create commute plan with best available parking spaces
@@ -115,9 +97,7 @@ export default function Home() {
                   marginBottom: "10px",
                   lineHeight: "1.2",
                   fontFamily: 'Palatino, Palatino Linotype, serif',
-                  color: (isHoveredImage2 && theme === "light") ? "white" :
-                    (!isHoveredImage2 && theme === "light") ? "black" :
-                      (isHoveredImage2 && theme === "dark") ? "white" : "white"
+                  color: (theme === "light" && isHoveredImage2) ? "white" : undefined
                 }}
                   className="uppercase text-center"
                 > Parking Permits
@@ -128,9 +108,7 @@ export default function Home() {
                   marginTop: "10px",
                   lineHeight: "1.2",
                   fontFamily: 'Palatino, Palatino Linotype, serif',
-                  color: (isHoveredImage2 && theme === "light") ? "white" :
-                    (!isHoveredImage2 && theme === "light") ? "black" :
-                      (isHoveredImage2 && theme === "dark") ? "white" : "white"
+                  color: (theme === "light" && isHoveredImage2) ? "white" : undefined
                 }}
                   className="text-center"
                 > Manage parking decals & citations
