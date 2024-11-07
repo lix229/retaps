@@ -24,9 +24,9 @@ export default function MapComponent({ departData }: MapComponentProps) {
     const [selectedPreference, setSelectedPreference] = useState<string>('faster');
     const [currentRoute, setCurrentRoute] = useState<number>(0);
 
-    const { isLoaded } = useLoadScript({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY!,
-    });
+    // const { isLoaded } = useLoadScript({
+    //     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY!,
+    // });
 
     const initialCenter = useMemo(() => {
         return departData?.location
@@ -93,7 +93,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
         setCurrentRoute((prev) => (prev < topParkingSpots.length - 1 ? prev + 1 : prev));
     };
 
-    if (!isLoaded) return <p>Loading map...</p>;
+    // if (!isLoaded) return <p>Loading map...</p>;
 
     const route = topParkingSpots[currentRoute]?.directionsResult.routes[0];
     const path = route?.overview_path;
@@ -291,13 +291,16 @@ export default function MapComponent({ departData }: MapComponentProps) {
                             mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                         >
                             <Chip
-                                color="success"
+                                // color="success"
                                 variant="shadow"
+                                classNames={{
+                                    base: "bg-gradient-to-tr from-pink-500 to-yellow-500 text-white border-white/50 shadow-pink-500/30",
+                                    content: "drop-shadow shadow-black text-white",
+                                }}
                                 size="lg"
                                 style={{
                                     padding: '5px',
                                     fontSize: '14px',
-                                    color: theme === 'dark' ? '#fff' : '#000',
                                     fontWeight: 'bold',
                                     transform: 'translate(-50%, -50%)',
                                 }}
@@ -360,6 +363,6 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     </React.Fragment>
                 )}
             </GoogleMap>
-        </div>
+        </div >
     );
 }

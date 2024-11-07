@@ -4,12 +4,19 @@ import { Button } from "@nextui-org/button";
 import Upcoming from "@/components/Upcoming";
 import MapComponent from "@/components/maps";
 import { useState } from "react";
+import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 const DEBUGGING = false;
 
 export default function MapsPage() {
   const [departData, setDepartData] = useState(undefined);
   const [parkingData, setParkingData] = useState(undefined);
+
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY || "",
+    libraries: ['places'],
+  });
 
   const handleDepartDataChange = (data: any) => {
     setDepartData(data);
@@ -20,22 +27,16 @@ export default function MapsPage() {
     console.log("Sending departData to MapComponent:", departData);
   };
 
+
+
+  if (!isLoaded) return <div>Loading...</div>;
+
   return (
     <div className={`flex h-[calc(100vh-150px)] w-full ${DEBUGGING ? "bg-green-200" : ""}`}>
       <div className={`flex flex-row w-full ${DEBUGGING ? "bg-green-200" : ""}`}>
         <div className="flex flex-col items-start space-y-4 p-2">
-          <div className="flex items-top space-x-2 w-full">
-            <DepartDateSelector onDepartDataChange={handleDepartDataChange} />
-            <Button
-              radius="full"
-              className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg w-[120px] h-[120px] rounded-lg flex flex-col items-center justify-center text-center text-[23px] font-extrabold"
-              style={{ fontFamily: "'Newsreader', serif" }}
-              onClick={handleFindParkingClick}
-            >
-              Find&nbsp;Me
-              <br />
-              Parking
-            </Button>
+          <div className="flex items-top space-x-0 w-full">
+            <DepartDateSelector onDepartDataChange={handleDepartDataChange} handleFindParkingClick={handleFindParkingClick} />
           </div>
           <Upcoming />
         </div>

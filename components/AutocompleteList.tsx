@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Input } from "@nextui-org/react";
 
+
 interface AutocompleteListProps {
     onSelect: (value: Location) => void;
 }
@@ -59,7 +60,7 @@ const AutocompleteList: React.FC<AutocompleteListProps> = ({ onSelect }) => {
     };
 
     return (
-        <div ref={inputContainerRef} className="relative w-[300px] rounded-[11px] shadow-medium">
+        <div ref={inputContainerRef} className="relative w-[250px] rounded-[11px] shadow-medium">
             <Input
                 type="search"
                 label="Destination"
