@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Card, CardHeader, CardBody, Image } from '@nextui-org/react';
 import React from "react";
 import { useHover } from "react-aria";
@@ -14,12 +13,8 @@ export default function Home() {
   const { hoverProps: hoverPropsImage1, isHovered: isHoveredImage1 } = useHover({});
   const { hoverProps: hoverPropsImage2, isHovered: isHoveredImage2 } = useHover({});
 
-  const goToLink1 = () => {
-    window.location.href = "/maps";
-  }
-  const goToLink2 = () => {
-    window.location.href = "https://portal.admin.ufl.edu/";
-  }
+  const goToLink1 = () => {window.location.href = "/maps";}
+  const goToLink2 = () => {window.location.href = "https://taps.ufl.edu/permits/";}
 
   return (
     <div className="grid grid-rows-[1fr_3fr] grid-cols-2 h-[calc(100vh-90px)] w-full">
