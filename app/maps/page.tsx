@@ -4,18 +4,19 @@ import { Button } from "@nextui-org/button";
 import Upcoming from "@/components/Upcoming";
 import MapComponent from "@/components/maps";
 import { useState } from "react";
-import { useLoadScript, Autocomplete } from "@react-google-maps/api";
+import { useLoadScript, Library } from "@react-google-maps/api";
 
 const DEBUGGING = false;
+const libraries: Library[] = ["places"];
+
 
 export default function MapsPage() {
   const [departData, setDepartData] = useState(undefined);
   const [parkingData, setParkingData] = useState(undefined);
 
-
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY || "",
-    libraries: ['places'],
+    libraries,
   });
 
   const handleDepartDataChange = (data: any) => {

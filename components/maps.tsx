@@ -111,7 +111,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
 
     const duration = route?.legs[0].duration!.text;
 
-    function RouteDurationOverlay({ position, duration, theme }) {
+    function RouteDurationOverlay({ position, duration, theme }: { position: google.maps.LatLngLiteral; duration: string; theme: string }) {
         return (
             <OverlayView
                 position={position}
@@ -357,7 +357,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
                             <RouteDurationOverlay
                                 position={midpoint}
                                 duration={duration}
-                                theme={theme}
+                                theme={theme || 'light'}
                             />
                         )}
                     </React.Fragment>
