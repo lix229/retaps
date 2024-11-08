@@ -4,7 +4,8 @@ import { Button } from "@nextui-org/button";
 import Upcoming from "@/components/Upcoming";
 import MapComponent from "@/components/maps";
 import { useState } from "react";
-import { useLoadScript, Library } from "@react-google-maps/api";
+import { useLoadScript } from "@react-google-maps/api";
+import { Library } from "@googlemaps/js-api-loader";
 
 const DEBUGGING = false;
 const libraries: Library[] = ["places"];
