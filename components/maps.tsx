@@ -243,7 +243,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
             >
                 <SelectItem key={'walk_less'}>Walk Less</SelectItem>
                 <SelectItem key={'faster'}>Arrive Sooner</SelectItem>
-                <SelectItem key={'no_bus'}>Not Taking Bus</SelectItem>
+                <SelectItem key={'no_bus'}>Avoid busses</SelectItem>
             </Select>
             <Button
                 className="absolute top-[90px] w-[130px] left-5 z-10 h-[40px]"
