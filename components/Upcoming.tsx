@@ -53,7 +53,7 @@ export default function Component(props: CardProps) {
 
     return (
         <Card className="w-full h-[calc(100vh-250px)]" {...props}>
-            <CardHeader className="flex flex-col px-0 pb-0">
+            <CardHeader className="flex flex-col px-0 pb-0 z-0 overflow-hidden"> {/* Adjusted z-index */}
                 <div className="flex w-full items-center justify-between px-5 py-2">
                     <div className="inline-flex items-center gap-1">
                         <h4 className="inline-block align-middle text-large font-medium">Upcoming</h4>
@@ -107,7 +107,7 @@ export default function Component(props: CardProps) {
                     />
                 </Tabs>
             </CardHeader>
-            <CardBody className="w-full gap-0 p-0">
+            <CardBody className="w-full gap-0 p-0 z-0">
                 <ScrollShadow className="h-[500px] w-full">
                     {activeItems.length > 0 ? (
                         activeItems.map((item) => (
@@ -128,7 +128,7 @@ export default function Component(props: CardProps) {
                     )}
                 </ScrollShadow>
             </CardBody>
-            <CardFooter className="justify-end gap-2 px-4">
+            <CardFooter className="justify-end gap-2 px-4 z-10"> {/* Set higher z-index for footer */}
                 <Button variant="light">Settings</Button>
                 <Button variant="flat">Add Event</Button>
             </CardFooter>

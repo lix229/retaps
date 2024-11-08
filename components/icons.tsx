@@ -3,7 +3,6 @@ import * as React from "react";
 import { IconSvgProps } from "@/types";
 
 
-
 export const Logo: React.FC<IconSvgProps> = ({
   size = 150,
   width,
@@ -14,11 +13,9 @@ export const Logo: React.FC<IconSvgProps> = ({
     fill="none"
     height={size || height}
     width={size || width}
-    viewBox="0 0 250 100"
+    viewBox="0 0 250 80" // Adjust the viewBox to better fit the elements
     {...props}
   >
-    <rect width="100%" height="100%" fill="none" />
-
     <text
       x="0"
       y="65"
@@ -53,7 +50,7 @@ export const Logo: React.FC<IconSvgProps> = ({
       y="40"
       fontFamily="Palatino, Palatino Linotype, serif"
       fontSize="20"
-      fontStyle={"italic"}
+      fontStyle="italic"
       fill="currentColor"
     >
       of
@@ -69,6 +66,7 @@ export const Logo: React.FC<IconSvgProps> = ({
     </text>
   </svg>
 );
+
 
 export const DiscordIcon: React.FC<IconSvgProps> = ({
   size = 24,

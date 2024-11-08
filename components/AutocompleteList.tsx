@@ -3,19 +3,30 @@
 import { useState, useRef } from "react";
 import { Input } from "@nextui-org/react";
 
+
 interface AutocompleteListProps {
-    onSelect: (value: string) => void;
+    onSelect: (value: Location) => void;
+}
+
+interface Location {
+    BLDGCODE: string;
+    BLDG: string;
+    NAME: string;
+    ABBREV: string;
+    OFFICIAL_ROOM_NAME: string;
+    LAT: number;
+    LON: number;
+    SITECODE: string;
+    BLDG_NAME: string;
 }
 
 const AutocompleteList: React.FC<AutocompleteListProps> = ({ onSelect }) => {
     const [query, setQuery] = useState("");
-    const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+    const [filteredSuggestions, setFilteredSuggestions] = useState<Location[]>([]);
     const [showNoResults, setShowNoResults] = useState(false);
     const inputContainerRef = useRef<HTMLDivElement>(null);
 
-    const suggestions = ["DSIT", "Reitz Union"];
-
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const input = event.target.value;
         setQuery(input);
 
@@ -23,23 +34,33 @@ const AutocompleteList: React.FC<AutocompleteListProps> = ({ onSelect }) => {
             setFilteredSuggestions([]);
             setShowNoResults(false);
         } else {
-            const matches = suggestions.filter((item) =>
-                item.toLowerCase().includes(input.toLowerCase())
-            );
-            setFilteredSuggestions(matches);
-            setShowNoResults(matches.length === 0);
+            // Fetch suggestions from the API
+            try {
+                const response = await fetch(
+                    `https://campusmap.ufl.edu/library/api/searchBldg?origin=*&srch=${encodeURIComponent(input)}`
+                );
+                const data: Location[] = await response.json();
+
+                // Save the full JSON object for each matching location
+                setFilteredSuggestions(data);
+                setShowNoResults(data.length === 0);
+            } catch (error) {
+                console.error("Error fetching location suggestions:", error);
+                setFilteredSuggestions([]);
+                setShowNoResults(true);
+            }
         }
     };
 
-    const handleSuggestionClick = (suggestion: string) => {
-        setQuery(suggestion);
+    const handleSuggestionClick = (suggestion: Location) => {
+        setQuery(suggestion.NAME);
         setFilteredSuggestions([]);
         setShowNoResults(false);
         onSelect(suggestion);
     };
 
     return (
-        <div ref={inputContainerRef} className="relative w-[300px] rounded-[11px] shadow-medium">
+        <div ref={inputContainerRef} className="relative w-[250px] rounded-[11px] shadow-medium">
             <Input
                 type="search"
                 label="Destination"
@@ -54,13 +75,16 @@ const AutocompleteList: React.FC<AutocompleteListProps> = ({ onSelect }) => {
                     className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-md z-10"
                     style={{ fontFamily: "var(--nextui-font-sans)" }}
                 >
-                    {filteredSuggestions.map((suggestion, index) => (
+                    {filteredSuggestions.slice(0, 10).map((suggestion, index) => (
                         <div
                             key={index}
                             className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-gray-100"
                             onClick={() => handleSuggestionClick(suggestion)}
                         >
-                            {suggestion}
+                            <div className="font-semibold">{suggestion.NAME}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {suggestion.OFFICIAL_ROOM_NAME}
+                            </div>
                         </div>
                     ))}
                 </div>
