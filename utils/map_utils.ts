@@ -1,5 +1,6 @@
 import { DepartData, ParkingSpotType } from "@/types/locations";
 import { parking_data_football } from "@/data/parking_data_football";
+import { DateValue } from "@nextui-org/react";
 
 export function compare_routes(a: any, b: any, preference: string) {
   if (preference === 'faster') {
@@ -126,3 +127,22 @@ export function filter_parking_data(parkingData: ParkingSpotType[], departData: 
     
     return parkingData;
 }
+
+
+export const isFootballGameDate = (date: DateValue) => {
+    return parking_data_football.some(gameDay => {
+        const [year, month, day] = gameDay.date.split('.').map(Number);
+        return date.year === year &&
+            date.month === month &&
+            date.day === day;
+    });
+};
+
+export const getFootballGameData = (date: DateValue) => {
+  return parking_data_football.find(gameDay => {
+      const [year, month, day] = gameDay.date.split('.').map(Number);
+      return date.year === year &&
+          date.month === month &&
+          date.day === day;
+  });
+};

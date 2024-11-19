@@ -92,3 +92,24 @@ export const permitTypes: PermitType[] = [
     }
 
 ];
+
+export const gamePermits = [
+    {
+        id: "Public General",
+        label: "Public General",
+        color: {
+            default: "#006400",  // Dark Green
+            foreground: "#FFFFFF"
+        },
+        description: "Public general parking"
+    },
+    {
+        id: "Booster",
+        label: "Booster",
+        color: {
+            default: "#4B0082",  // Deep Purple
+            foreground: "#FFFFFF"
+        },
+        description: "Booster parking"
+    },
+];

@@ -6,6 +6,7 @@ import MapComponent from "@/components/maps";
 import { useState } from "react";
 import { useLoadScript } from "@react-google-maps/api";
 import { Library } from "@googlemaps/js-api-loader";
+import LoadingScreen from "@/components/loading-screen";
 
 const DEBUGGING = false;
 const libraries: Library[] = ["places"];
@@ -26,12 +27,11 @@ export default function MapsPage() {
 
   const handleFindParkingClick = () => {
     setParkingData(departData);
-    console.log("Sending departData to MapComponent:", departData);
   };
 
 
 
-  if (!isLoaded) return <div>Loading...</div>;
+  if (!isLoaded) return <LoadingScreen />;
 
   return (
     <div className={`flex h-[calc(100vh-150px)] w-full ${DEBUGGING ? "bg-green-200" : ""}`}>

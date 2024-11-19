@@ -4,12 +4,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useTheme } from 'next-themes';
 import { Select, SelectItem, Selection, Chip, Button, DateValue } from "@nextui-org/react";
-import { permitTypes } from '@/types/userData';
+import { permitTypes, gamePermits } from '@/types/userData';
 import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/types/locations';
 import { darkStyles, lightStyles } from '@/data/maps';
 import { parking_data } from '@/data/parking_data';
 import { parking_data_football } from '@/data/parking_data_football';
-import { compare_routes, filter_parking_data } from '@/utils/map_utils';
+import { compare_routes, filter_parking_data, isFootballGameDate, getFootballGameData } from '@/utils/map_utils';
 import { MemoizedDestinationOverlay, MemoizedParkingOverlay, MemoizedDepartureOverlay, MemoizedRouteDurationOverlay } from '@/components/map-overlays';
 
 interface MapComponentProps {
@@ -20,10 +20,11 @@ export default function MapComponent({ departData }: MapComponentProps) {
     const { theme } = useTheme();
     const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
     const [topParkingSpots, setTopParkingSpots] = useState<
-        Array<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult }>
+        Array<ValidParkingDirections>
     >([]);
     const [selectedPreference, setSelectedPreference] = useState<string>('faster');
     const [currentRoute, setCurrentRoute] = useState<number>(0);
+    const [selectedGamePermits, setSelectedGamePermits] = useState<Selection>(new Set([]));
 
 
     const initialCenter = useMemo(() => {
@@ -59,24 +60,6 @@ export default function MapComponent({ departData }: MapComponentProps) {
 
     useEffect(() => {
         if (departData?.location) {
-            // Check if the date is a football game date
-            const isFootballGameDate = (date: DateValue) => {
-                return parking_data_football.some(gameDay => {
-                    const [year, month, day] = gameDay.date.split('.').map(Number);
-                    return date.year === year &&
-                        date.month === month &&
-                        date.day === day;
-                });
-            };
-
-            const getFootballGameData = (date: DateValue) => {
-                return parking_data_football.find(gameDay => {
-                    const [year, month, day] = gameDay.date.split('.').map(Number);
-                    return date.year === year &&
-                        date.month === month &&
-                        date.day === day;
-                });
-            };
             const parkingDataToUse = departData.date && isFootballGameDate(departData.date)
                 ? getFootballGameData(departData.date)?.parking_data
                 : parking_data;
@@ -87,7 +70,11 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 );
             }
 
-            const filteredParkingData = filter_parking_data(parkingDataToUse as ParkingSpotType[], departData, Array.from(selectedPermits).map(String));
+            const filteredParkingData = filter_parking_data(parkingDataToUse as ParkingSpotType[], departData, Array.from(selectedPermits).map(String).concat(
+                isFootballGameDate(departData.date!)
+                    ? Array.from(selectedGamePermits).map(String)
+                    : []
+            ));
             const TRANSIT_MODE = selectedPreference === 'no_bus' ? google.maps.TravelMode.WALKING : google.maps.TravelMode.TRANSIT;
             const directionsService = new google.maps.DirectionsService();
 
@@ -294,6 +281,45 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     </SelectItem>
                 ))}
             </Select>
+
+            {departData?.date && isFootballGameDate(departData.date) && (
+                <Select
+                    label="Game Day Permits"
+                    selectionMode="multiple"
+                    placeholder="Select game day permits"
+                    selectedKeys={selectedGamePermits}
+                    className="absolute top-20 w-[${selectWidth}px] right-5 z-10 h-auto shadow-md rounded-md"
+                    onSelectionChange={setSelectedGamePermits}
+                    style={{ width: selectWidth }}
+                >
+                    {gamePermits.map((permit) => (
+                        <SelectItem
+                            key={permit.id}
+                            value={permit.id}
+                            textValue={permit.label}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Chip
+                                    variant="flat"
+                                    size="sm"
+                                    style={{
+                                        backgroundColor: permit.color.default,
+                                        color: permit.color.foreground,
+                                        boxShadow: `0 3px 5px ${permit?.color.default?.replace(/[\d.]+\)$/, '0.6)') || "rgba(0,0,0,0.6)"}`,
+                                    }}
+                                >
+                                    {permit.label}
+                                </Chip>
+                                {permit.description && (
+                                    <span className="text-tiny text-default-400">
+                                        {permit.description}
+                                    </span>
+                                )}
+                            </div>
+                        </SelectItem>
+                    ))}
+                </Select>
+            )}
             <Select
                 placeholder="Preferences"
                 label="I prefer to"
@@ -416,6 +442,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     />
                 )}
             </GoogleMap>
+
         </div >
     );
 }
