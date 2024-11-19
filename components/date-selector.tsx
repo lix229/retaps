@@ -22,6 +22,7 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
     const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
     const [location, setLocation] = useState<google.maps.places.PlaceResult | undefined>(undefined);
     const [departData, setDepartData] = useState<DepartData>({
+        departure_location: null,
         location: null,
         date: defaultDate,
         time: defaultTime,
@@ -47,17 +48,15 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
         if (autocomplete) {
             const place = autocomplete.getPlace();
             setLocation(place);
-            console.log("Place changed:", place);
             if (place.geometry && place.geometry.location) {
                 const lat = place.geometry.location.lat();
                 const lng = place.geometry.location.lng();
-                console.log("Location data:", { lat, lng });
+                handleDepartDataChange("departure_location", { lat, lng });
             } else {
                 console.warn("No location data available for the selected place");
             }
         }
     };
-
     return (
         <div className="space-y-3">
             <div className="flex flex-row item-start space-x-2">
@@ -67,7 +66,7 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
                         onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
                         <Input
                             type="text"
-                            label="Departure location"
+                            label="Departure (Optional)"
                             placeholder=""
                             className="p-0 rounded-md w-[250px]"
                             value={location?.name}

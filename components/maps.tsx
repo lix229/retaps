@@ -3,12 +3,14 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap, OverlayView } from '@react-google-maps/api';
 import { useTheme } from 'next-themes';
-import { Select, SelectItem, Selection, Chip, Button } from "@nextui-org/react";
+import { Select, SelectItem, Selection, Chip, Button, DateValue } from "@nextui-org/react";
 import { permitTypes } from '@/types/userData';
 import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/types/locations';
 import { darkStyles, lightStyles } from '@/data/maps';
 import { parking_data } from '@/data/parking_data';
+import { parking_data_football } from '@/data/parking_data_football';
 import { compare_routes, filter_parking_data } from '@/utils/map_utils';
+import { MemoizedDestinationOverlay, MemoizedParkingOverlay, MemoizedDepartureOverlay, MemoizedRouteDurationOverlay } from '@/components/map-overlays';
 
 interface MapComponentProps {
     departData?: DepartData;
@@ -17,16 +19,12 @@ interface MapComponentProps {
 export default function MapComponent({ departData }: MapComponentProps) {
     const { theme } = useTheme();
     const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
-    const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
     const [topParkingSpots, setTopParkingSpots] = useState<
         Array<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult }>
     >([]);
     const [selectedPreference, setSelectedPreference] = useState<string>('faster');
     const [currentRoute, setCurrentRoute] = useState<number>(0);
 
-    // const { isLoaded } = useLoadScript({
-    //     googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY!,
-    // });
 
     const initialCenter = useMemo(() => {
         return departData?.location
@@ -36,32 +34,116 @@ export default function MapComponent({ departData }: MapComponentProps) {
 
     const selectWidth = useMemo(() => {
         const selectedSize = selectedPermits instanceof Set ? selectedPermits.size : 0;
-        const baseWidth = 200;
-        const additionalWidth = 27;
+        const baseWidth = 250;
+        const additionalWidth = 10;
         const calculatedWidth = baseWidth + (selectedSize * additionalWidth);
         const maxWidth = 900;
         return Math.min(calculatedWidth, maxWidth);
     }, [selectedPermits]);
 
+    function calculateTotalDuration(transitResult: google.maps.DirectionsResult, drivingResult?: google.maps.DirectionsResult): number {
+        let totalSeconds = 0;
+
+        // Add transit/walking duration
+        if (transitResult.routes[0]?.legs[0]?.duration?.value) {
+            totalSeconds += transitResult.routes[0].legs[0].duration.value;
+        }
+
+        // Add driving duration if it exists
+        if (drivingResult?.routes[0]?.legs[0]?.duration?.value) {
+            totalSeconds += drivingResult.routes[0].legs[0].duration.value;
+        }
+
+        return totalSeconds;
+    }
+
     useEffect(() => {
         if (departData?.location) {
-            const filteredParkingData = filter_parking_data(parking_data as ParkingSpotType[], departData, Array.from(selectedPermits).map(String));
+            // Check if the date is a football game date
+            const isFootballGameDate = (date: DateValue) => {
+                return parking_data_football.some(gameDay => {
+                    const [year, month, day] = gameDay.date.split('.').map(Number);
+                    return date.year === year &&
+                        date.month === month &&
+                        date.day === day;
+                });
+            };
+
+            const getFootballGameData = (date: DateValue) => {
+                return parking_data_football.find(gameDay => {
+                    const [year, month, day] = gameDay.date.split('.').map(Number);
+                    return date.year === year &&
+                        date.month === month &&
+                        date.day === day;
+                });
+            };
+            const parkingDataToUse = departData.date && isFootballGameDate(departData.date)
+                ? getFootballGameData(departData.date)?.parking_data
+                : parking_data;
+
+            if (isFootballGameDate(departData.date!)) {
+                console.log(
+                    "football game data",
+                );
+            }
+
+            const filteredParkingData = filter_parking_data(parkingDataToUse as ParkingSpotType[], departData, Array.from(selectedPermits).map(String));
             const TRANSIT_MODE = selectedPreference === 'no_bus' ? google.maps.TravelMode.WALKING : google.maps.TravelMode.TRANSIT;
             const directionsService = new google.maps.DirectionsService();
+
             const promises = Object.values(filteredParkingData).map((parkingSpot) => {
-                const origin = { lat: parkingSpot.LATITUDE, lng: parkingSpot.LONGITUDE };
-                return new Promise<{ parkingSpot: ParkingSpotType; directionsResult: google.maps.DirectionsResult | null }>((resolve) => {
+                const parkingLocation = { lat: parkingSpot.LATITUDE, lng: parkingSpot.LONGITUDE };
+                const destination = { lat: departData.location!.LAT, lng: departData.location!.LON };
+
+                return new Promise<ValidParkingDirections>((resolve) => {
+                    // Get transit/walking directions from parking to destination
                     directionsService.route(
                         {
-                            origin,
-                            destination: { lat: departData.location!.LAT, lng: departData.location!.LON },
+                            origin: parkingLocation,
+                            destination: destination,
                             travelMode: TRANSIT_MODE,
                         },
-                        (result, status) => {
-                            if (status === google.maps.DirectionsStatus.OK && result) {
-                                resolve({ parkingSpot, directionsResult: result });
+                        (transitResult, transitStatus) => {
+                            if (transitStatus !== google.maps.DirectionsStatus.OK) {
+                                resolve({ parkingSpot, directionsResult: transitResult! });
+                                return;
+                            }
+
+                            // If departure location exists, get driving directions to parking
+                            if (departData.departure_location) {
+                                directionsService.route(
+                                    {
+                                        origin: {
+                                            lat: departData.departure_location.lat,
+                                            lng: departData.departure_location.lng
+                                        },
+                                        destination: parkingLocation,
+                                        travelMode: google.maps.TravelMode.DRIVING,
+                                    },
+                                    (drivingResult, drivingStatus) => {
+                                        if (drivingStatus === google.maps.DirectionsStatus.OK) {
+                                            const totalDuration = calculateTotalDuration(transitResult!, drivingResult!);
+                                            resolve({
+                                                parkingSpot,
+                                                directionsResult: transitResult!,
+                                                drivingDirections: drivingResult!,
+                                                totalDuration: totalDuration
+                                            });
+                                        } else {
+                                            resolve({
+                                                parkingSpot,
+                                                directionsResult: transitResult!,
+                                                totalDuration: calculateTotalDuration(transitResult!)
+                                            });
+                                        }
+                                    }
+                                );
                             } else {
-                                resolve({ parkingSpot, directionsResult: null });
+                                resolve({
+                                    parkingSpot,
+                                    directionsResult: transitResult!,
+                                    totalDuration: calculateTotalDuration(transitResult!)
+                                });
                             }
                         }
                     );
@@ -74,13 +156,16 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 );
 
                 const top10Results = validResults
-                    .sort(
-                        (a, b) => compare_routes(a, b, selectedPreference)
-                    )
+                    .sort((a, b) => {
+                        if (selectedPreference === 'faster') {
+                            return (a.totalDuration || 0) - (b.totalDuration || 0);
+                        }
+                        return compare_routes(a, b, selectedPreference);
+                    })
                     .slice(0, 10);
 
                 setTopParkingSpots(top10Results);
-                setCurrentRoute(0); // Reset to the first route on new data
+                setCurrentRoute(0);
             });
         }
     }, [departData, selectedPermits, selectedPreference]);
@@ -93,12 +178,34 @@ export default function MapComponent({ departData }: MapComponentProps) {
         setCurrentRoute((prev) => (prev < topParkingSpots.length - 1 ? prev + 1 : prev));
     };
 
-    // if (!isLoaded) return <p>Loading map...</p>;
+    const getDrivingMidpoint = useMemo(() => {
+        if (!topParkingSpots[currentRoute]?.drivingDirections?.routes?.[0]?.legs?.[0]) return null;
+        const steps = topParkingSpots[currentRoute].drivingDirections!.routes[0].legs[0].steps;
+        const midStepIndex = Math.floor(steps.length / 2);
+        return {
+            lat: steps[midStepIndex].start_location.lat(),
+            lng: steps[midStepIndex].start_location.lng()
+        };
+    }, [topParkingSpots, currentRoute]);
 
+    const parkingPosition = useMemo(() => {
+        if (!topParkingSpots[currentRoute]?.directionsResult?.routes?.[0]?.legs?.[0]) return null;
+        return {
+            lat: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lat(),
+            lng: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lng()
+        };
+    }, [topParkingSpots, currentRoute]);
+
+    const departurePosition = useMemo(() => {
+        if (!departData?.departure_location) return null;
+        return {
+            lat: departData.departure_location.lat,
+            lng: departData.departure_location.lng
+        };
+    }, [departData]);
     const route = topParkingSpots[currentRoute]?.directionsResult.routes[0];
     const path = route?.overview_path;
 
-    // Calculate midpoint index
     const midpointIndex = path ? Math.floor(path.length / 2) : 0;
 
     // Get the midpoint coordinates
@@ -111,46 +218,27 @@ export default function MapComponent({ departData }: MapComponentProps) {
 
     const duration = route?.legs[0].duration!.text;
 
-    function RouteDurationOverlay({ position, duration, theme }: { position: google.maps.LatLngLiteral; duration: string; theme: string }) {
-        return (
-            <OverlayView
-                position={position}
-                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-            >
-                <div
-                    className={`route-duration-overlay ${theme === 'dark' ? 'dark' : 'light'} w-[70px]`}
-                    style={{
-                        backgroundColor: theme === 'dark' ? '#333' : '#fff',
-                        color: theme === 'dark' ? '#fff' : '#000',
-                        padding: '5px 10px',
-                        borderRadius: '4px',
-                        border: `2px solid ${theme === 'dark' ? '#fff' : '#000'}`,
-                        textAlign: 'center',
-                        whiteSpace: 'nowrap',
-                        fontWeight: 'bold',
-                        transform: 'translate(-50%, -50%)',
-                    }}
-                >
-                    {duration}
-                </div>
-            </OverlayView>
-        );
-    }
-
     const renderSelectedItems = (items: any) => {
         return (
             <div className="flex flex-wrap gap-1">
-                {items.map((item: any) => (
-                    <Chip
-                        key={item.key}
-                        color={permitTypes.find(p => p.id === item.key)?.color || "default"}
-                        variant="flat"
-                        size="sm"
-                        className='mt-0'
-                    >
-                        {item.textValue}
-                    </Chip>
-                ))}
+                {items.map((item: any) => {
+                    const permit = permitTypes.find(p => p.id === item.key);
+                    return (
+                        <Chip
+                            key={item.key}
+                            variant="flat"
+                            size="sm"
+                            className='mt-0'
+                            style={{
+                                backgroundColor: permit?.color.default || "default",
+                                color: permit?.color.foreground || "#000000",
+                                boxShadow: `0 2px 3px ${permit?.color.default?.replace(/[\d.]+\)$/, '0.6)') || "rgba(0,0,0,0.6)"}`,
+                            }}
+                        >
+                            {item.textValue}
+                        </Chip>
+                    );
+                })}
             </div>
         );
     };
@@ -173,9 +261,9 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 }}
                 className="absolute top-5 w-[${selectWidth}px] right-5 z-10 h-auto shadow-md rounded-md"
                 classNames={{
-                    trigger: "min-h-[50px]",
+                    trigger: "min-h-[50px] h-auto",
                     listbox: "max-h-[300px]",
-                    value: "py-1",
+                    value: "py-3",
                     popoverContent: "p-0",
                 }}
             >
@@ -187,9 +275,13 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     >
                         <div className="flex items-center gap-2">
                             <Chip
-                                color={permit.color}
                                 variant="flat"
                                 size="sm"
+                                style={{
+                                    backgroundColor: permit.color.default,
+                                    color: permit.color.foreground,
+                                    boxShadow: `0 3px 5px ${permit?.color.default?.replace(/[\d.]+\)$/, '0.6)') || "rgba(0,0,0,0.6)"}`,
+                                }}
                             >
                                 {permit.label}
                             </Chip>
@@ -244,6 +336,8 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 <SelectItem key={'walk_less'}>Walk Less</SelectItem>
                 <SelectItem key={'faster'}>Arrive Sooner</SelectItem>
                 <SelectItem key={'no_bus'}>Avoid busses</SelectItem>
+                <SelectItem key={'drive_less'}>Drive Less</SelectItem>
+                <SelectItem key={'less_transit'}>Spend less time after parked</SelectItem>
             </Select>
             <Button
                 className="absolute top-[90px] w-[130px] left-5 z-10 h-[40px]"
@@ -269,98 +363,57 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 }}
             >
                 {departData?.location && (
-                    <>
-                        {/* <Marker
-                            position={{ lat: departData.location.LAT, lng: departData.location.LON }}
-                            label={{
-                                text: departData.location.NAME,
-                                color: theme === 'dark' ? '#fff' : '#000',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-5',
-                            }}
-                            icon={{
-                                url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
-                            }}
-                        >
-                        </Marker> */}
-                        <OverlayView
-                            position={{
-                                lat: departData.location.LAT, lng: departData.location.LON
-                            }}
-                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                        >
-                            <Chip
-                                // color="success"
-                                variant="shadow"
-                                classNames={{
-                                    base: "bg-gradient-to-tr from-pink-500 to-yellow-500 text-white border-white/50 shadow-pink-500/30",
-                                    content: "drop-shadow shadow-black text-white",
-                                }}
-                                size="lg"
-                                style={{
-                                    padding: '5px',
-                                    fontSize: '14px',
-                                    fontWeight: 'bold',
-                                    transform: 'translate(-50%, -50%)',
-                                }}
-                            >
-                                {departData.location.NAME}
-                            </Chip>
-                        </OverlayView>
-                    </>
+                    <MemoizedDestinationOverlay
+                        position={{ lat: departData.location.LAT, lng: departData.location.LON }}
+                        name={departData.location.NAME}
+                    />
                 )}
-                {topParkingSpots[currentRoute] && (
-                    <React.Fragment>
-                        {/* <Marker
-                            position={{
-                                lat: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lat(),
-                                lng: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lng(),
-                            }}
-                            label={{
-                                text: topParkingSpots[currentRoute].parkingSpot.Name,
-                                color: theme === 'dark' ? '#fff' : '#000',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                className: 'border-3 border-blue-500 p-2 bg-white dark:bg-gray-800 rounded-md -mt-6 z-10',
-                            }}
-                            icon={{
-                                url: "https://mt.google.com/vt/icon?color=ff004C13&name=icons/spotlight/spotlight-waypoint-blue.png",
-                            }}
-                        /> */}
-                        <OverlayView
-                            position={{
-                                lat: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lat(),
-                                lng: topParkingSpots[currentRoute].directionsResult.routes[0].legs[0].start_location.lng(),
-                            }}
-                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                        >
-                            <Chip
-                                color="warning"
-                                variant="shadow"
-                                size="lg"
-                                style={{
-                                    padding: '5px',
-                                    fontSize: '14px',
-                                    fontWeight: 'bold',
-                                    transform: 'translate(-50%, -50%)',
-                                }}
-                            >
-                                {topParkingSpots[currentRoute].parkingSpot.Name}
-                            </Chip>
-                        </OverlayView>
+                {topParkingSpots[currentRoute] && parkingPosition && (
+                    <>
+                        <MemoizedParkingOverlay
+                            key={`parking-${topParkingSpots[currentRoute].parkingSpot.Name}`}
+                            position={parkingPosition}
+                            name={topParkingSpots[currentRoute].parkingSpot.Name}
+                        />
                         <DirectionsRenderer
+                            key={`transit-${currentRoute}`}
                             directions={topParkingSpots[currentRoute].directionsResult}
                             options={{ suppressInfoWindows: true, suppressMarkers: true }}
                         />
                         {midpoint && duration && (
-                            <RouteDurationOverlay
+                            <MemoizedRouteDurationOverlay
+                                key={`transit-duration-${duration}`}
                                 position={midpoint}
                                 duration={duration}
                                 theme={theme || 'light'}
                             />
                         )}
-                    </React.Fragment>
+                        {getDrivingMidpoint && departurePosition && (
+                            <>
+                                <DirectionsRenderer
+                                    key={`driving-${currentRoute}`}
+                                    directions={(topParkingSpots[currentRoute] as ValidParkingDirections).drivingDirections}
+                                    options={{
+                                        suppressInfoWindows: true,
+                                        suppressMarkers: true,
+                                    }}
+                                />
+                                <MemoizedRouteDurationOverlay
+                                    key={`driving-duration-${currentRoute}`}
+                                    position={getDrivingMidpoint}
+                                    duration={(topParkingSpots[currentRoute] as ValidParkingDirections)
+                                        .drivingDirections!.routes[0].legs[0].duration!.text}
+                                    theme={theme || 'light'}
+                                />
+                            </>
+                        )}
+                    </>
+                )}
+                {departurePosition && (
+                    <MemoizedDepartureOverlay
+                        key="departure"
+                        position={departurePosition}
+                    />
                 )}
             </GoogleMap>
         </div >

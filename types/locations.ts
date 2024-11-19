@@ -2,6 +2,7 @@ import type { TimeValue } from "@react-types/datepicker";
 import { DateValue } from "@internationalized/date";
 
 export interface DepartData {
+    departure_location?: {lat: number, lng: number} | null;
     location: Location | null;
     date: DateValue | null;
     time: TimeValue | null;
@@ -34,4 +35,6 @@ export interface ParkingSpotType {
 export interface ValidParkingDirections {
     parkingSpot: ParkingSpotType;
     directionsResult: google.maps.DirectionsResult
+    drivingDirections?: google.maps.DirectionsResult;
+    totalDuration?: number;
 }
