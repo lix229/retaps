@@ -100,6 +100,8 @@ const isTimeInRange = (hour: number, minute: number, startTime: string, endTime:
 };
 
 export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[], gamePermit?: string[]) {
+  if (!parkingData) return []; 
+  
   const isFootballGame = parking_data_football.some(gameDay => {
       if (!departData.date) return false;
       const [year, month, day] = gameDay.date.split('.').map(Number);

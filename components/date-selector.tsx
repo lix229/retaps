@@ -12,10 +12,20 @@ import { Button } from "@nextui-org/button";
 
 interface DepartDateSelectorProps {
     onDepartDataChange: (data: DepartData) => void;
-    handleFindParkingClick?: () => void;
+    handleFindParkingClick: (selectedPermits: Set<string>, isGameDay: boolean) => void;
+    initialData?: DepartData;
+    selectedPermits: Set<string>;
+    isGameDay: boolean;
 }
 
-export default function DepartDateSelector({ onDepartDataChange, handleFindParkingClick }: DepartDateSelectorProps) {
+
+export default function DepartDateSelector({
+    onDepartDataChange,
+    handleFindParkingClick,
+    initialData,
+    selectedPermits,
+    isGameDay
+}: DepartDateSelectorProps) {
     // Set default values for today's date and current time
     const defaultDate = today(getLocalTimeZone());
     const defaultTime = now(getLocalTimeZone()).add({ minutes: 10 });
@@ -31,6 +41,12 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
     useEffect(() => {
         onDepartDataChange(departData);
     }, [departData, onDepartDataChange]);
+
+    useEffect(() => {
+        if (initialData) {
+            setDepartData(initialData);
+        }
+    }, [initialData]);
 
     const handleDepartDataChange = (key: keyof DepartData, value: any) => {
         setDepartData((prevData) => ({ ...prevData, [key]: value }));
@@ -70,7 +86,8 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
                 <div className="flex flex-col space-y-2">
                     <Autocomplete
                         className="w-[250px] rounded-[11px] shadow-medium"
-                        onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                        onLoad={onLoad}
+                        onPlaceChanged={onPlaceChanged}>
                         <Input
                             type="text"
                             label="Departure (Optional)"
@@ -86,7 +103,7 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
                     radius="full"
                     className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg w-[120px] h-[120px] rounded-lg flex flex-col items-center justify-center text-center text-[23px] font-extrabold"
                     style={{ fontFamily: "'Newsreader', serif" }}
-                    onClick={handleFindParkingClick}
+                    onClick={() => handleFindParkingClick(selectedPermits, isGameDay)}
                 >
                     Get&nbsp;Me
                     <br />

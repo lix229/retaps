@@ -1,23 +1,31 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { DirectionsRenderer, InfoWindow, Marker, useLoadScript, GoogleMap, OverlayView } from '@react-google-maps/api';
+import { DirectionsRenderer, GoogleMap } from '@react-google-maps/api';
 import { useTheme } from 'next-themes';
 import { Select, SelectItem, Selection, Chip, Button, DateValue } from "@nextui-org/react";
 import { permitTypes, gamePermits } from '@/types/userData';
-import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/types/locations';
+import type { DepartData, ValidParkingDirections } from '@/types/locations';
 import { darkStyles, lightStyles } from '@/data/maps';
 import { parking_data } from '@/data/parking_data';
-import { parking_data_football } from '@/data/parking_data_football';
 import { compare_routes, filter_parking_data, isFootballGameDate, getFootballGameData, calculateTotalDuration } from '@/utils/map_utils';
 import { MemoizedDestinationOverlay, MemoizedParkingOverlay, MemoizedDepartureOverlay, MemoizedRouteDurationOverlay } from '@/components/map-overlays';
 
 interface MapComponentProps {
     departData?: DepartData;
     currentDepartData?: DepartData;
+    onFindParking: (selectedPermits: Set<string>, isGameDay: boolean) => void;
+    onPermitChange: (permits: Set<string>) => void;
+    onGameDayChange: (isGame: boolean) => void;
 }
 
-export default function MapComponent({ departData, currentDepartData }: MapComponentProps) {
+export default function MapComponent({
+    departData,
+    currentDepartData,
+    onFindParking,
+    onPermitChange,
+    onGameDayChange
+}: MapComponentProps) {
     const { theme } = useTheme();
     const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
     const [topParkingSpots, setTopParkingSpots] = useState<
@@ -27,20 +35,35 @@ export default function MapComponent({ departData, currentDepartData }: MapCompo
     const [currentRoute, setCurrentRoute] = useState<number>(0);
     const [selectedGamePermits, setSelectedGamePermits] = useState<Selection>(new Set([]));
     const [isGameDay, setIsGameDay] = useState<boolean>(false);
+    const [localDepartData, setLocalDepartData] = useState<DepartData | null>(null);
+    const [pendingDepartData, setPendingDepartData] = useState<DepartData | undefined>(undefined);
     const initialCenter = useMemo(() => {
-        return departData?.location
-            ? { lat: departData.location.LAT, lng: departData.location.LON }
+        return localDepartData?.location
+            ? { lat: localDepartData.location.LAT, lng: localDepartData.location.LON }
             : { lat: 29.643946, lng: -82.355659 };
-    }, [departData]);
+    }, [localDepartData]);
 
+    useEffect(() => {
+        const storedDepartData = localStorage.getItem('upcomingDepartData');
+        if (storedDepartData) {
+            const parsedData = JSON.parse(storedDepartData);
+            setLocalDepartData(parsedData);
+            localStorage.removeItem('upcomingDepartData');
+        }
+    }, []);
 
     useEffect(() => {
         if (currentDepartData?.date) {
-            setIsGameDay(isFootballGameDate(currentDepartData.date));
-        } else {
-            setIsGameDay(false);
+            const isGame = isFootballGameDate(currentDepartData.date);
+            setIsGameDay(isGame);
+            onGameDayChange(isGame);
         }
-    }, [currentDepartData?.date]);
+    }, [currentDepartData?.date, onGameDayChange]);
+
+    const handlePermitChange = (newSelection: Selection) => {
+        setSelectedPermits(newSelection);
+        onPermitChange(newSelection as Set<string>);
+    };
 
     const selectWidth = useMemo(() => {
         const selectedSize = selectedPermits instanceof Set ? selectedPermits.size : 0;
@@ -63,17 +86,13 @@ export default function MapComponent({ departData, currentDepartData }: MapCompo
 
     useEffect(() => {
         if (departData?.location) {
-            const parkingDataToUse = departData.date && isFootballGameDate(departData.date)
-                ? getFootballGameData(departData.date)?.parking_data
+            const isGameDay = departData.date ? isFootballGameDate(departData.date) : false;
+            const parkingDataToUse = isGameDay
+                ? (getFootballGameData(departData.date!)?.parking_data || [])
                 : parking_data;
 
-            if (isFootballGameDate(departData.date!)) {
-                console.log(
-                    "football game data",
-                );
-            }
             const filteredParkingData = filter_parking_data(
-                (isGameDay ? getFootballGameData(departData.date!)?.parking_data : parking_data) as ParkingSpotType[],
+                parkingDataToUse,
                 departData,
                 Array.from(selectedPermits).map(String),
                 Array.from(selectedGamePermits).map(String)
@@ -267,7 +286,7 @@ export default function MapComponent({ departData, currentDepartData }: MapCompo
                 variant='faded'
                 aria-label='Permit Types'
                 selectedKeys={selectedPermits}
-                onSelectionChange={setSelectedPermits}
+                onSelectionChange={handlePermitChange}
                 renderValue={renderSelectedItems}
                 style={{
                     fontFamily: 'var(--nextui-font-sans)',
@@ -310,57 +329,59 @@ export default function MapComponent({ departData, currentDepartData }: MapCompo
                 ))}
             </Select>
 
-            {/* {true && ( */}
             {isGameDay && (
-
-                <div className="absolute top-20 right-5 z-10">
-                    <Select
-                        label={
-                            <div className="flex items-center gap-2">
-                                <span className="animate-pulse bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent font-bold">
-                                    🎉 GAME DAY Options
-                                </span>
-                            </div>
-                        }
-                        selectionMode="multiple"
-                        selectedKeys={selectedGamePermits}
-                        renderValue={renderSelectedGameItems}
-                        variant='flat'
-                        onSelectionChange={setSelectedGamePermits}
-                        style={{
-                            width: `${selectGameWidth}px`,
-                            transition: 'width 0.2s ease-in-out',
-                        }}
-                        classNames={{
-                            trigger: "w-[${selectGameWidth}px] bg-gradient-to-r from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 border-orange-500/30",
-                            value: "text-orange-600 dark:text-orange-400",
-                        }}
-                    >
-                        {gamePermits.map((permit) => (
-                            <SelectItem
-                                key={permit.id}
-                                textValue={permit.id}
-                                className="capitalize"
-                            >
+                <div className="absolute top-[80px] right-5 z-10 animate-bounce-slow">
+                    <div className="relative">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                        <Select
+                            label={
                                 <div className="flex items-center gap-2">
-                                    <Chip
-                                        variant="flat"
-                                        size="sm"
-                                        style={{
-                                            backgroundColor: permit.color.default,
-                                            color: permit.color.foreground,
-                                            boxShadow: `0 2px 4px ${permit.color.default}80`,
-                                        }}
-                                    >
-                                        {permit.label}
-                                    </Chip>
-                                    <span className="text-tiny text-default-400">
-                                        {permit.description}
+                                    <span className="animate-pulse bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent font-bold text-md">
+                                        🎉 &nbsp;&nbsp;&nbsp;GAME DAY Parking
                                     </span>
                                 </div>
-                            </SelectItem>
-                        ))}
-                    </Select>
+                            }
+                            selectionMode="multiple"
+                            selectedKeys={selectedGamePermits}
+                            renderValue={renderSelectedGameItems}
+                            variant='flat'
+                            onSelectionChange={setSelectedGamePermits}
+                            style={{
+                                width: `${selectGameWidth}px`,
+                                transition: 'width 0.2s ease-in-out',
+                            }}
+                            classNames={{
+                                trigger: "w-[${selectGameWidth}px] bg-gradient-to-r from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 border-orange-500/30",
+                                value: "text-orange-600 dark:text-orange-400",
+                                base: "bg-white dark:bg-gray-900 rounded-xl relative z-20",
+                            }}
+                        >
+                            {gamePermits.map((permit) => (
+                                <SelectItem
+                                    key={permit.id}
+                                    textValue={permit.id}
+                                    className="capitalize"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Chip
+                                            variant="flat"
+                                            size="sm"
+                                            style={{
+                                                backgroundColor: permit.color.default,
+                                                color: permit.color.foreground,
+                                                boxShadow: `0 2px 4px ${permit.color.default}80`,
+                                            }}
+                                        >
+                                            {permit.label}
+                                        </Chip>
+                                        <span className="text-tiny text-default-400">
+                                            {permit.description}
+                                        </span>
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </Select>
+                    </div>
                 </div>
             )}
             <Select

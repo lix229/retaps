@@ -15,14 +15,8 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import UpcomingItem from "@/components/UpcomingItem";
-
-type UpcomingItem = {
-    id: string;
-    isEvent: boolean;
-    title: string;
-    date: string;
-    location: string;
-};
+import type { UpcomingItemType } from "@/types/upcoming";
+import type { DepartData } from "@/types/locations";
 
 enum UpcomingTabs {
     All = "all",
@@ -30,29 +24,146 @@ enum UpcomingTabs {
     Events = "events",
 }
 
-const upcomingData: Record<UpcomingTabs, UpcomingItem[]> = {
+const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
     all: [
-        { id: "1", isEvent: true, title: "Team Meeting", date: "Oct 30, 2023", location: "Office" },
-        { id: "2", isEvent: false, title: "Commute to Downtown", date: "Nov 1, 2023", location: "Downtown" },
-        { id: "3", isEvent: true, title: "Conference", date: "Nov 5, 2023", location: "City Hall" },
-        { id: "4", isEvent: false, title: "Commute to Park", date: "Nov 6, 2023", location: "Central Park" },
-    ],
-    commute: [
-        { id: "2", isEvent: false, title: "Commute to Downtown", date: "Nov 1, 2023", location: "Downtown" },
-        { id: "4", isEvent: false, title: "Commute to Park", date: "Nov 6, 2023", location: "Central Park" },
+        {
+            id: "1",
+            isEvent: false,
+            title: "CS Class",
+            date: "2024-12-15",
+            location: {
+                BLDGCODE: "CSE",
+                BLDG: "Computer Science Engineering Building",
+                NAME: "CSE Building",
+                ABBREV: "CSE",
+                OFFICIAL_ROOM_NAME: "E309",
+                LAT: 29.6484,
+                LON: -82.3444,
+                SITECODE: "0042",
+                BLDG_NAME: "Computer Science Engineering Building"
+            },
+            time: {
+                hour: 10,
+                minute: 30
+            }
+        },
+        {
+            id: "2",
+            isEvent: true,
+            title: "Football Game",
+            date: "2024-11-25",
+            location: {
+                BLDGCODE: "BHG",
+                BLDG: "Ben Hill Griffin Stadium",
+                NAME: "The Swamp",
+                ABBREV: "BHG",
+                OFFICIAL_ROOM_NAME: "Stadium",
+                LAT: 29.6500,
+                LON: -82.3486,
+                SITECODE: "0157",
+                BLDG_NAME: "Ben Hill Griffin Stadium"
+            },
+            time: {
+                hour: 15,
+                minute: 0
+            }
+        },
+        {
+            id: "3",
+            isEvent: false,
+            title: "Library Study",
+            date: "2024-11-27",
+            location: {
+                BLDGCODE: "LIB",
+                BLDG: "Library West",
+                NAME: "Library West",
+                ABBREV: "LIB",
+                OFFICIAL_ROOM_NAME: "Library",
+                LAT: 29.6508,
+                LON: -82.3427,
+                SITECODE: "0211",
+                BLDG_NAME: "Library West"
+            },
+            time: {
+                hour: 13,
+                minute: 0
+            }
+        }
     ],
     events: [
-        { id: "1", isEvent: true, title: "Team Meeting", date: "Oct 30, 2023", location: "Office" },
-        { id: "3", isEvent: true, title: "Conference", date: "Nov 5, 2023", location: "City Hall" },
+        {
+            id: "2",
+            isEvent: true,
+            title: "Football Game",
+            date: "2024-11-25",
+            location: {
+                BLDGCODE: "BHG",
+                BLDG: "Ben Hill Griffin Stadium",
+                NAME: "The Swamp",
+                ABBREV: "BHG",
+                OFFICIAL_ROOM_NAME: "Stadium",
+                LAT: 29.6500,
+                LON: -82.3486,
+                SITECODE: "0157",
+                BLDG_NAME: "Ben Hill Griffin Stadium"
+            },
+            time: {
+                hour: 15,
+                minute: 0
+            }
+        },
     ],
+    commute: [
+        {
+            id: "1",
+            isEvent: false,
+            title: "CS Class",
+            date: "2024-12-15",
+            location: {
+                BLDGCODE: "CSE",
+                BLDG: "Computer Science Engineering Building",
+                NAME: "CSE Building",
+                ABBREV: "CSE",
+                OFFICIAL_ROOM_NAME: "E309",
+                LAT: 29.6484,
+                LON: -82.3444,
+                SITECODE: "0042",
+                BLDG_NAME: "Computer Science Engineering Building"
+            },
+            time: {
+                hour: 10,
+                minute: 30
+            }
+        },
+        {
+            id: "3",
+            isEvent: false,
+            title: "Library Study",
+            date: "2024-12-18",
+            location: {
+                BLDGCODE: "LIB",
+                BLDG: "Library West",
+                NAME: "Library West",
+                ABBREV: "LIB",
+                OFFICIAL_ROOM_NAME: "Library",
+                LAT: 29.6508,
+                LON: -82.3427,
+                SITECODE: "0211",
+                BLDG_NAME: "Library West"
+            },
+            time: {
+                hour: 13,
+                minute: 0
+            }
+        }
+    ]
 };
-
-export default function Component(props: CardProps) {
+export default function Upcoming({ onUpcomingSelect }: { onUpcomingSelect: (data: DepartData) => void }) {
     const [activeTab, setActiveTab] = React.useState<UpcomingTabs>(UpcomingTabs.All);
     const activeItems = upcomingData[activeTab];
 
     return (
-        <Card className="w-full h-[calc(100vh-250px)]" {...props}>
+        <Card className="w-full h-[calc(100vh-250px)]">
             <CardHeader className="flex flex-col px-0 pb-0 z-0 overflow-hidden"> {/* Adjusted z-index */}
                 <div className="flex w-full items-center justify-between px-5 py-2">
                     <div className="inline-flex items-center gap-1">
@@ -113,11 +224,8 @@ export default function Component(props: CardProps) {
                         activeItems.map((item) => (
                             <UpcomingItem
                                 key={item.id}
-                                id={item.id}
-                                title={item.title}
-                                date={item.date}
-                                location={item.location}
-                                isEvent={item.isEvent}
+                                {...item}
+                                onUpcomingSelect={onUpcomingSelect}
                             />
                         ))
                     ) : (

@@ -27,7 +27,7 @@ export interface ParkingSpotType {
     LATITUDE: number;
     LONGITUDE: number;
     Permit: string;
-    'Permit holders allowed': string;
+    'Permit holders allowed': string | null;
     Start: string | null;
     End: string | null;
 }
