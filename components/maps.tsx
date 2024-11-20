@@ -9,14 +9,15 @@ import type { DepartData, ParkingSpotType, ValidParkingDirections } from '@/type
 import { darkStyles, lightStyles } from '@/data/maps';
 import { parking_data } from '@/data/parking_data';
 import { parking_data_football } from '@/data/parking_data_football';
-import { compare_routes, filter_parking_data, isFootballGameDate, getFootballGameData } from '@/utils/map_utils';
+import { compare_routes, filter_parking_data, isFootballGameDate, getFootballGameData, calculateTotalDuration } from '@/utils/map_utils';
 import { MemoizedDestinationOverlay, MemoizedParkingOverlay, MemoizedDepartureOverlay, MemoizedRouteDurationOverlay } from '@/components/map-overlays';
 
 interface MapComponentProps {
     departData?: DepartData;
+    currentDepartData?: DepartData;
 }
 
-export default function MapComponent({ departData }: MapComponentProps) {
+export default function MapComponent({ departData, currentDepartData }: MapComponentProps) {
     const { theme } = useTheme();
     const [selectedPermits, setSelectedPermits] = useState<Selection>(new Set([]));
     const [topParkingSpots, setTopParkingSpots] = useState<
@@ -25,13 +26,21 @@ export default function MapComponent({ departData }: MapComponentProps) {
     const [selectedPreference, setSelectedPreference] = useState<string>('faster');
     const [currentRoute, setCurrentRoute] = useState<number>(0);
     const [selectedGamePermits, setSelectedGamePermits] = useState<Selection>(new Set([]));
-
-
+    const [isGameDay, setIsGameDay] = useState<boolean>(false);
     const initialCenter = useMemo(() => {
         return departData?.location
             ? { lat: departData.location.LAT, lng: departData.location.LON }
             : { lat: 29.643946, lng: -82.355659 };
     }, [departData]);
+
+
+    useEffect(() => {
+        if (currentDepartData?.date) {
+            setIsGameDay(isFootballGameDate(currentDepartData.date));
+        } else {
+            setIsGameDay(false);
+        }
+    }, [currentDepartData?.date]);
 
     const selectWidth = useMemo(() => {
         const selectedSize = selectedPermits instanceof Set ? selectedPermits.size : 0;
@@ -42,21 +51,15 @@ export default function MapComponent({ departData }: MapComponentProps) {
         return Math.min(calculatedWidth, maxWidth);
     }, [selectedPermits]);
 
-    function calculateTotalDuration(transitResult: google.maps.DirectionsResult, drivingResult?: google.maps.DirectionsResult): number {
-        let totalSeconds = 0;
 
-        // Add transit/walking duration
-        if (transitResult.routes[0]?.legs[0]?.duration?.value) {
-            totalSeconds += transitResult.routes[0].legs[0].duration.value;
-        }
-
-        // Add driving duration if it exists
-        if (drivingResult?.routes[0]?.legs[0]?.duration?.value) {
-            totalSeconds += drivingResult.routes[0].legs[0].duration.value;
-        }
-
-        return totalSeconds;
-    }
+    const selectGameWidth = useMemo(() => {
+        const selectedSize = selectedGamePermits instanceof Set ? selectedGamePermits.size : 0;
+        const baseWidth = 250;
+        const additionalWidth = 15;
+        const calculatedWidth = baseWidth + (selectedSize * additionalWidth);
+        const maxWidth = 900;
+        return Math.min(calculatedWidth, maxWidth);
+    }, [selectedGamePermits]);
 
     useEffect(() => {
         if (departData?.location) {
@@ -69,12 +72,13 @@ export default function MapComponent({ departData }: MapComponentProps) {
                     "football game data",
                 );
             }
+            const filteredParkingData = filter_parking_data(
+                (isGameDay ? getFootballGameData(departData.date!)?.parking_data : parking_data) as ParkingSpotType[],
+                departData,
+                Array.from(selectedPermits).map(String),
+                Array.from(selectedGamePermits).map(String)
+            );
 
-            const filteredParkingData = filter_parking_data(parkingDataToUse as ParkingSpotType[], departData, Array.from(selectedPermits).map(String).concat(
-                isFootballGameDate(departData.date!)
-                    ? Array.from(selectedGamePermits).map(String)
-                    : []
-            ));
             const TRANSIT_MODE = selectedPreference === 'no_bus' ? google.maps.TravelMode.WALKING : google.maps.TravelMode.TRANSIT;
             const directionsService = new google.maps.DirectionsService();
 
@@ -155,7 +159,7 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 setCurrentRoute(0);
             });
         }
-    }, [departData, selectedPermits, selectedPreference]);
+    }, [departData, selectedPermits, selectedPreference, selectedGamePermits]);
 
     const handlePreviousRoute = () => {
         setCurrentRoute((prev) => (prev > 0 ? prev - 1 : prev));
@@ -230,6 +234,30 @@ export default function MapComponent({ departData }: MapComponentProps) {
         );
     };
 
+    const renderSelectedGameItems = (items: any) => {
+        return (
+            <div className="flex flex-wrap gap-1">
+                {items.map((item: any) => {
+                    const permit = gamePermits.find(p => p.id === item.key);
+                    return (
+                        <Chip
+                            key={item.key}
+                            variant="flat"
+                            size="sm"
+                            className='mt-0'
+                            style={{
+                                backgroundColor: permit?.color.default || "default",
+                                color: permit?.color.foreground || "#000000",
+                                boxShadow: `0 2px 3px ${permit?.color.default?.replace(/[\d.]+\)$/, '0.6)') || "rgba(0,0,0,0.6)"}`,
+                            }}
+                        >
+                            {permit?.label}
+                        </Chip>
+                    );
+                })}
+            </div>
+        );
+    };
     return (
         <div className="w-full h-full rounded-lg overflow-hidden shadow-lg relative">
             <Select
@@ -282,43 +310,58 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 ))}
             </Select>
 
-            {departData?.date && isFootballGameDate(departData.date) && (
-                <Select
-                    label="Game Day Permits"
-                    selectionMode="multiple"
-                    placeholder="Select game day permits"
-                    selectedKeys={selectedGamePermits}
-                    className="absolute top-20 w-[${selectWidth}px] right-5 z-10 h-auto shadow-md rounded-md"
-                    onSelectionChange={setSelectedGamePermits}
-                    style={{ width: selectWidth }}
-                >
-                    {gamePermits.map((permit) => (
-                        <SelectItem
-                            key={permit.id}
-                            value={permit.id}
-                            textValue={permit.label}
-                        >
+            {/* {true && ( */}
+            {isGameDay && (
+
+                <div className="absolute top-20 right-5 z-10">
+                    <Select
+                        label={
                             <div className="flex items-center gap-2">
-                                <Chip
-                                    variant="flat"
-                                    size="sm"
-                                    style={{
-                                        backgroundColor: permit.color.default,
-                                        color: permit.color.foreground,
-                                        boxShadow: `0 3px 5px ${permit?.color.default?.replace(/[\d.]+\)$/, '0.6)') || "rgba(0,0,0,0.6)"}`,
-                                    }}
-                                >
-                                    {permit.label}
-                                </Chip>
-                                {permit.description && (
+                                <span className="animate-pulse bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent font-bold">
+                                    🎉 GAME DAY Options
+                                </span>
+                            </div>
+                        }
+                        selectionMode="multiple"
+                        selectedKeys={selectedGamePermits}
+                        renderValue={renderSelectedGameItems}
+                        variant='flat'
+                        onSelectionChange={setSelectedGamePermits}
+                        style={{
+                            width: `${selectGameWidth}px`,
+                            transition: 'width 0.2s ease-in-out',
+                        }}
+                        classNames={{
+                            trigger: "w-[${selectGameWidth}px] bg-gradient-to-r from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 border-orange-500/30",
+                            value: "text-orange-600 dark:text-orange-400",
+                        }}
+                    >
+                        {gamePermits.map((permit) => (
+                            <SelectItem
+                                key={permit.id}
+                                textValue={permit.id}
+                                className="capitalize"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Chip
+                                        variant="flat"
+                                        size="sm"
+                                        style={{
+                                            backgroundColor: permit.color.default,
+                                            color: permit.color.foreground,
+                                            boxShadow: `0 2px 4px ${permit.color.default}80`,
+                                        }}
+                                    >
+                                        {permit.label}
+                                    </Chip>
                                     <span className="text-tiny text-default-400">
                                         {permit.description}
                                     </span>
-                                )}
-                            </div>
-                        </SelectItem>
-                    ))}
-                </Select>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </Select>
+                </div>
             )}
             <Select
                 placeholder="Preferences"
@@ -362,8 +405,20 @@ export default function MapComponent({ departData }: MapComponentProps) {
                 <SelectItem key={'walk_less'}>Walk Less</SelectItem>
                 <SelectItem key={'faster'}>Arrive Sooner</SelectItem>
                 <SelectItem key={'no_bus'}>Avoid busses</SelectItem>
-                <SelectItem key={'drive_less'}>Drive Less</SelectItem>
-                <SelectItem key={'less_transit'}>Spend less time after parked</SelectItem>
+                <SelectItem
+                    key={'drive_less'}
+                    isDisabled={!departData?.departure_location}
+                    description={!departData?.departure_location ? "Requires departure location" : undefined}
+                >
+                    Drive Less
+                </SelectItem>
+                <SelectItem
+                    key={'less_transit'}
+                    isDisabled={!departData?.departure_location}
+                    description={!departData?.departure_location ? "Requires departure location" : undefined}
+                >
+                    Spend less time after parked
+                </SelectItem>
             </Select>
             <Button
                 className="absolute top-[90px] w-[130px] left-5 z-10 h-[40px]"

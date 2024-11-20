@@ -98,7 +98,7 @@ export const gamePermits = [
         id: "Public General",
         label: "Public General",
         color: {
-            default: "#006400",  // Dark Green
+            default: "rgba(249, 115, 22, 0.9)",  // Orange-500
             foreground: "#FFFFFF"
         },
         description: "Public general parking"
@@ -107,9 +107,18 @@ export const gamePermits = [
         id: "Booster",
         label: "Booster",
         color: {
-            default: "#4B0082",  // Deep Purple
+            default: "rgba(239, 68, 68, 0.9)",   // Red-500
             foreground: "#FFFFFF"
         },
         description: "Booster parking"
     },
+    {
+        id: "TAPS RV",
+        label: "TAPS RV",
+        color: {
+            default: "rgba(225, 29, 72, 0.9)",   // Rose-600
+            foreground: "#FFFFFF"
+        },
+        description: "RV parking spots"
+    }
 ];

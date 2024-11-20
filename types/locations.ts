@@ -28,8 +28,8 @@ export interface ParkingSpotType {
     LONGITUDE: number;
     Permit: string;
     'Permit holders allowed': string;
-    Start: string;
-    End: string;
+    Start: string | null;
+    End: string | null;
 }
 
 export interface ValidParkingDirections {

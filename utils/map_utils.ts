@@ -99,35 +99,43 @@ const isTimeInRange = (hour: number, minute: number, startTime: string, endTime:
     }
 };
 
-export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[]) {
-    const isFootballGame = parking_data_football.some(gameDay => {
-        if (!departData.date) return false;
-        const [year, month, day] = gameDay.date.split('.').map(Number);
-        return departData.date.year === year && 
-              departData.date.month === month && 
-              departData.date.day === day;
-    });
-    if (permit) {
+export function filter_parking_data(parkingData: ParkingSpotType[], departData: DepartData, permit?: string[], gamePermit?: string[]) {
+  const isFootballGame = parking_data_football.some(gameDay => {
+      if (!departData.date) return false;
+      const [year, month, day] = gameDay.date.split('.').map(Number);
+      return departData.date.year === year && 
+            departData.date.month === month && 
+            departData.date.day === day;
+  });
 
-        parkingData = parkingData.filter((parkingSpot: any) => {
-            if (!isFootballGame && !isTimeInRange(departData.time!.hour, departData.time!.minute, parkingSpot['Start'], parkingSpot['End'])) {
-                return true;
-            }
-            else if (parkingSpot['Permit holders allowed']) {
-                return permit.some((p) => parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()));
-            }
-            else {
-             return false;
-            }
-        });
-    }
+  if (permit || gamePermit) {
+      parkingData = parkingData.filter((parkingSpot: any) => {
+          if (!isFootballGame && !isTimeInRange(departData.time!.hour, departData.time!.minute, parkingSpot['Start'], parkingSpot['End'])) {
+              return true;
+          }
+          else if (parkingSpot['Permit holders allowed']) {
+              const permitCheck = permit?.some((p) => 
+                  parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase())) || 
+                  parkingSpot['Permit holders allowed'].toLowerCase().includes('any');
 
- 
+              const gamePermitCheck = gamePermit?.some((p) => {
+                  if (p === 'TAPS RV') {
+                      return parkingSpot['Permit holders allowed'].toLowerCase().includes('taps rv');
+                  }
+                  return parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()) ||
+                         parkingSpot['Permit holders allowed'].toLowerCase().includes('any');
+              });
 
-    
-    return parkingData;
+              return permitCheck || gamePermitCheck;
+          }
+          else {
+              return false;
+          }
+      });
+  }
+  
+  return parkingData;
 }
-
 
 export const isFootballGameDate = (date: DateValue) => {
     return parking_data_football.some(gameDay => {
@@ -146,3 +154,19 @@ export const getFootballGameData = (date: DateValue) => {
           date.day === day;
   });
 };
+
+
+export function calculateTotalDuration(transitResult: google.maps.DirectionsResult, drivingResult?: google.maps.DirectionsResult): number {
+  let totalSeconds = 0;
+
+  // Add transit/walking duration
+  if (transitResult.routes[0]?.legs[0]?.duration?.value) {
+      totalSeconds += transitResult.routes[0].legs[0].duration.value;
+  }
+
+  // Add driving duration if it exists
+  if (drivingResult?.routes[0]?.legs[0]?.duration?.value) {
+      totalSeconds += drivingResult.routes[0].legs[0].duration.value;
+  }
+  return totalSeconds;
+}

@@ -36,7 +36,14 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
         setDepartData((prevData) => ({ ...prevData, [key]: value }));
     };
 
-    // Determine minimum time based on whether the selected date is today
+    const handleDateChange = (value: any) => {
+        handleDepartDataChange("date", value);
+        onDepartDataChange({
+            ...departData,
+            date: value
+        });
+    };
+
     const isTodaySelected = departData.date && departData.date.compare(defaultDate) === 0;
     const minimumTime = isTodaySelected ? now(getLocalTimeZone()) : undefined;
 
@@ -90,7 +97,7 @@ export default function DepartDateSelector({ onDepartDataChange, handleFindParki
                 <DatePicker
                     label="Pick a date"
                     className="w-[195px] rounded-[12px]"
-                    onChange={(value) => handleDepartDataChange("date", value)}
+                    onChange={(value) => handleDateChange(value)}
                     minValue={defaultDate}
                     defaultValue={defaultDate}
                     value={departData.date}
