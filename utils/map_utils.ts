@@ -117,9 +117,9 @@ export function filter_parking_data(parkingData: ParkingSpotType[], departData: 
           }
           else if (parkingSpot['Permit holders allowed']) {
               const permitCheck = permit?.some((p) => 
-                  parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase())) || 
-                  parkingSpot['Permit holders allowed'].toLowerCase().includes('any');
-
+                  parkingSpot['Permit holders allowed'].toLowerCase().includes(p.toLowerCase()) || 
+                  (parkingSpot['Permit holders allowed'].toLowerCase().includes('any') && p !== '')
+              );
               const gamePermitCheck = gamePermit?.some((p) => {
                   if (p === 'TAPS RV') {
                       return parkingSpot['Permit holders allowed'].toLowerCase().includes('taps rv');
