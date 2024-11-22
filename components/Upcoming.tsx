@@ -30,7 +30,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             id: "1",
             isEvent: false,
             title: "CS Class",
-            date: "2024-12-15",
+            date: "2024-12-11",
             location: {
                 BLDGCODE: "CSE",
                 BLDG: "Computer Sciences/Engineering",
@@ -51,7 +51,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             id: "2",
             isEvent: true,
             title: "Football Game",
-            date: "2024-11-25",
+            date: "2024-12-20",
             location: {
                 BLDGCODE: "BHG",
                 BLDG: "Ben Hill Griffin Stadium",
@@ -72,7 +72,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             id: "3",
             isEvent: false,
             title: "Library Study",
-            date: "2024-11-27",
+            date: "2024-12-18",
             location: {
                 BLDGCODE: "LIB",
                 BLDG: "Library West",
@@ -95,7 +95,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             id: "2",
             isEvent: true,
             title: "Football Game",
-            date: "2024-11-25",
+            date: "2024-12-20",
             location: {
                 BLDGCODE: "BHG",
                 BLDG: "Ben Hill Griffin Stadium",
@@ -118,7 +118,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             id: "1",
             isEvent: false,
             title: "CS Class",
-            date: "2024-12-15",
+            date: "2024-12-11",
             location: {
                 BLDGCODE: "CSE",
                 BLDG: "Computer Sciences/Engineering",
