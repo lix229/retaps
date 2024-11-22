@@ -438,7 +438,7 @@ export default function MapComponent({
                     isDisabled={!departData?.departure_location}
                     description={!departData?.departure_location ? "Requires departure location" : undefined}
                 >
-                    Spend less time after parked
+                    Park closer to destination
                 </SelectItem>
             </Select>
             <Button
