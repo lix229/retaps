@@ -81,7 +81,7 @@ const AutocompleteList: React.FC<AutocompleteListProps> = ({ onSelect }) => {
                             className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-gray-100"
                             onClick={() => handleSuggestionClick(suggestion)}
                         >
-                            <div className="font-semibold">{suggestion.NAME}</div>
+                            <div className="font-semibold">{suggestion.NAME} {suggestion.ABBREV === '' ? '' : `(${suggestion.ABBREV})`}</div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {suggestion.OFFICIAL_ROOM_NAME}
                             </div>
