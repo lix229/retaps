@@ -33,14 +33,14 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             date: "2024-12-15",
             location: {
                 BLDGCODE: "CSE",
-                BLDG: "Computer Science Engineering Building",
-                NAME: "CSE Building",
+                BLDG: "Computer Sciences/Engineering",
+                NAME: "Computer Sciences/Engineering",
                 ABBREV: "CSE",
                 OFFICIAL_ROOM_NAME: "E309",
                 LAT: 29.6484,
                 LON: -82.3444,
                 SITECODE: "0042",
-                BLDG_NAME: "Computer Science Engineering Building"
+                BLDG_NAME: "Computer Sciences/Engineering"
             },
             time: {
                 hour: 10,
@@ -55,7 +55,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             location: {
                 BLDGCODE: "BHG",
                 BLDG: "Ben Hill Griffin Stadium",
-                NAME: "The Swamp",
+                NAME: "Ben Hill Griffin Stadium",
                 ABBREV: "BHG",
                 OFFICIAL_ROOM_NAME: "Stadium",
                 LAT: 29.6500,
@@ -85,7 +85,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
                 BLDG_NAME: "Library West"
             },
             time: {
-                hour: 13,
+                hour: 19,
                 minute: 0
             }
         }
@@ -99,7 +99,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             location: {
                 BLDGCODE: "BHG",
                 BLDG: "Ben Hill Griffin Stadium",
-                NAME: "The Swamp",
+                NAME: "Ben Hill Griffin Stadium",
                 ABBREV: "BHG",
                 OFFICIAL_ROOM_NAME: "Stadium",
                 LAT: 29.6500,
@@ -121,14 +121,14 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
             date: "2024-12-15",
             location: {
                 BLDGCODE: "CSE",
-                BLDG: "Computer Science Engineering Building",
-                NAME: "CSE Building",
+                BLDG: "Computer Sciences/Engineering",
+                NAME: "Computer Sciences/Engineering",
                 ABBREV: "CSE",
                 OFFICIAL_ROOM_NAME: "E309",
                 LAT: 29.6484,
                 LON: -82.3444,
                 SITECODE: "0042",
-                BLDG_NAME: "Computer Science Engineering Building"
+                BLDG_NAME: "Computer Sciences/Engineering"
             },
             time: {
                 hour: 10,
@@ -152,7 +152,7 @@ const upcomingData: Record<UpcomingTabs, UpcomingItemType[]> = {
                 BLDG_NAME: "Library West"
             },
             time: {
-                hour: 13,
+                hour: 19,
                 minute: 0
             }
         }
